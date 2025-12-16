@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Flask
+instance/
+.webassets-cache
+
+# 업로드된 파일
+web/uploads/*
+!web/uploads/.gitkeep
+
+# 생성된 파일
+outputs/*
+!outputs/.gitkeep
+!outputs/pdf/.gitkeep
+!outputs/excel/.gitkeep
+
+# 로그 파일
+*.log
+logs/
+payroll_generator/logs/*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 빌드 파일
+build/
+dist/
+# 빌드 설정 파일은 포함 (build.spec, build_mac.spec, build_win.spec)
+
+# 환경 변수
+.env
+.env.local
+# .env.example은 포함 (예시 파일이므로)
+
+# 테스트
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 데이터베이스
+app.db
+*.db
+*.sqlite
+*.sqlite3
+
+# 생성된 샘플 파일 (템플릿 파일은 포함, 생성된 PDF는 제외)
+sample/*.pdf
+sample/*_급여명세서.pdf
+sample/*_급여명세서*.pdf
+
+# 큰 폰트 파일 (웹 프로젝트에는 불필요, GitHub 100MB 제한)
+payroll_generator/assets/nanum-all_new.zip
+payroll_generator/assets/나눔\ 글꼴/
+payroll_generator/assets/D2coding/
+
+# 빌드 파일 (데스크톱 앱용)
+dist/
+build/

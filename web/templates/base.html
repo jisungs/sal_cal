@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}급여명세서 자동생성기{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">
+                💼 급여명세서 자동생성기
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" 
+                    data-bs-target="#navbarNav" aria-controls="navbarNav" 
+                    aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'pages.main' %}active{% endif %}" 
+                               href="{{ url_for('pages.main') }}">Main</a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle {% if request.endpoint in ['main.index', 'payroll.input_form', 'payroll.multiple_input_form'] %}active{% endif %}" 
+                               href="#" id="inputDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                문서 만들기 
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="inputDropdown">
+                                <li><a class="dropdown-item {% if request.endpoint == 'payroll.input_form' %}active{% endif %}" href="{{ url_for('payroll.input_form') }}">👤 한명</a></li>
+                                <li><a class="dropdown-item disabled {% if request.endpoint == 'payroll.multiple_input_form' %}active{% endif %}" href="{{ url_for('payroll.multiple_input_form') }}">👥 여러명</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item disabled {% if request.endpoint == 'main.index' %}active{% endif %}" href="{{ url_for('main.index') }}">📄 엑셀 파일 업로드</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link disabled{% if request.endpoint == 'pages.about' %}active{% endif %}" 
+                               href="{{ url_for('pages.about') }}">About</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'pages.design' %}active{% endif %}" 
+                               href="{{ url_for('pages.design') }}">Design</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'pages.contact' %}active{% endif %}" 
+                               href="{{ url_for('pages.contact') }}">Contact</a>
+                        </li>
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            {{ current_user.username or current_user.email }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="#">프로필</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">로그아웃</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'auth.login' %}active{% endif %}" 
+                           href="{{ url_for('auth.login') }}">Login / Sign in</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container my-5" style="margin-top: 100px !important;">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bg-light text-center py-3 mt-5">
+        <div class="container">
+            <p class="text-muted mb-0">급여명세서 자동생성기 v1.0</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

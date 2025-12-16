@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}급여명세서 생성 결과{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-success text-white">
+                <h3 class="card-title mb-0">✅ 급여명세서 생성 완료</h3>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>지급 기간:</strong> {{ period }}</p>
+                <p class="mb-2"><strong>출력 형식:</strong> 
+                    {% if output_format == 'excel' %}엑셀
+                    {% elif output_format == 'pdf' %}PDF
+                    {% else %}엑셀 + PDF
+                    {% endif %}
+                </p>
+                <p class="mb-0"><strong>처리된 직원 수:</strong> {{ results|length }}명</p>
+            </div>
+        </div>
+
+        <div class="card shadow mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">📊 급여 현황</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>이름</th>
+                                <th>총 지급액</th>
+                                <th>총 공제액</th>
+                                <th>실수령액</th>
+                                <th>다운로드</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in results %}
+                            <tr>
+                                <td>{{ result.employee_name }}</td>
+                                <td>{{ "{:,}".format(result.payroll_data.get('총지급액', 0)) }}원</td>
+                                <td>{{ "{:,}".format(result.payroll_data.get('총공제액', 0)) }}원</td>
+                                <td><strong>{{ "{:,}".format(result.payroll_data.get('실수령액', 0)) }}원</strong></td>
+                                <td>
+                                    {% if output_format in ['excel', 'both'] %}
+                                    <a href="/download/excel/{{ result.employee_name }}" 
+                                       class="btn btn-sm btn-outline-primary">엑셀</a>
+                                    {% endif %}
+                                    {% if output_format in ['pdf', 'both'] %}
+                                    <a href="/download/pdf/{{ result.employee_name }}" 
+                                       class="btn btn-sm btn-outline-danger">PDF</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-body">
+                <h5 class="card-title">📦 일괄 다운로드</h5>
+                <p class="card-text">모든 직원의 급여명세서를 ZIP 파일로 다운로드하세요.</p>
+                <div class="btn-group" role="group">
+                    {% if output_format in ['excel', 'both'] %}
+                    <a href="/batch_download/excel" class="btn btn-primary">엑셀 ZIP</a>
+                    {% endif %}
+                    {% if output_format in ['pdf', 'both'] %}
+                    <a href="/batch_download/pdf" class="btn btn-danger">PDF ZIP</a>
+                    {% endif %}
+                    {% if output_format == 'both' %}
+                    <a href="/batch_download/both" class="btn btn-success">전체 ZIP</a>
+                    {% endif %}
+                </div>
+                <a href="/" class="btn btn-outline-secondary ms-2">다시 시작</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

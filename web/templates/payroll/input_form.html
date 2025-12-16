@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+
+{% block title %}급여명세서 직접 입력{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="card-title mb-0">✏️ 급여명세서 직접 입력</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="payrollForm">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="mb-3">기본 정보</h5>
+                            
+                            <div class="mb-3">
+                                {{ form.name.label(class="form-label") }}
+                                {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
+                                {% if form.name.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.name.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.resident_number.label(class="form-label") }}
+                                {{ form.resident_number(class="form-control" + (" is-invalid" if form.resident_number.errors else ""), placeholder="123456", maxlength="6") }}
+                                {% if form.resident_number.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.resident_number.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">주민번호 앞자리 6자리만 입력하세요.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.hire_date.label(class="form-label") }}
+                                {{ form.hire_date(class="form-control" + (" is-invalid" if form.hire_date.errors else ""), type="date") }}
+                                {% if form.hire_date.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.hire_date.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.department.label(class="form-label") }}
+                                {{ form.department(class="form-control", placeholder="예: 개발팀, 영업팀") }}
+                                <div class="form-text">선택사항: 템플릿 디자인에 표시됩니다</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.position.label(class="form-label") }}
+                                {{ form.position(class="form-control", placeholder="예: 선임, 주임, 대리") }}
+                                <div class="form-text">선택사항: 템플릿 디자인에 표시됩니다</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.bank_name.label(class="form-label") }}
+                                {{ form.bank_name(class="form-control", placeholder="예: KB국민은행, 신한은행") }}
+                                <div class="form-text">선택사항: 급여 이체용 은행명</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.account_number.label(class="form-label") }}
+                                {{ form.account_number(class="form-control", placeholder="123-456-789012") }}
+                                <div class="form-text">선택사항: 급여 이체용 계좌번호</div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h5 class="mb-3">급여 정보</h5>
+                            
+                            <div class="mb-3">
+                                {{ form.base_salary.label(class="form-label") }}
+                                {{ form.base_salary(class="form-control" + (" is-invalid" if form.base_salary.errors else ""), type="number", min="0", step="1000", id="base_salary") }}
+                                {% if form.base_salary.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.base_salary.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.dependents.label(class="form-label") }}
+                                {{ form.dependents(class="form-control" + (" is-invalid" if form.dependents.errors else ""), type="number", min="0", max="10", id="dependents") }}
+                                {% if form.dependents.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.dependents.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.overtime_hours.label(class="form-label") }}
+                                {{ form.overtime_hours(class="form-control", type="number", min="0", id="overtime_hours") }}
+                                <div class="form-text">선택사항: 월 연장근무 시간</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.overtime_rate.label(class="form-label") }}
+                                {{ form.overtime_rate(class="form-control", type="number", min="0", step="1000", id="overtime_rate") }}
+                                <div class="form-text">선택사항: 시간당 연장근무 단가</div>
+                                <div id="overtime_rate_hint" class="form-text text-primary" style="display: none; cursor: pointer;"></div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.bonus.label(class="form-label") }}
+                                {{ form.bonus(class="form-control", type="number", min="0", step="1000", id="bonus") }}
+                                <div class="form-text">선택사항: 상여금 금액</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.period.label(class="form-label") }}
+                                {{ form.period(class="form-control" + (" is-invalid" if form.period.errors else ""), placeholder="2025-01", pattern="\\d{4}-\\d{2}") }}
+                                {% if form.period.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.period.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">형식: YYYY-MM</div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">출력 형식</label>
+                                <div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="output_format" 
+                                               id="format_excel" value="excel">
+                                        <label class="form-check-label" for="format_excel">엑셀</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="output_format" 
+                                               id="format_pdf" value="pdf">
+                                        <label class="form-check-label" for="format_pdf">PDF</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="output_format" 
+                                               id="format_both" value="both" checked>
+                                        <label class="form-check-label" for="format_both">둘 다</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label mb-3">디자인 선택</label>
+                                <input type="hidden" name="design_name" id="design_name" value="default">
+                                <div class="row g-3" id="design-cards">
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card design-card h-100" data-design="default" style="cursor: pointer; border: 2px solid #dee2e6; transition: all 0.3s;">
+                                            <div class="card-body text-center">
+                                                                <div class="mb-2">
+                                                    <input type="radio" name="design_radio" value="default" id="design_default" checked style="display: none;">
+                                                    <div style="font-size: 2.5rem; color: #6c757d;">📄</div>
+                                                </div>
+                                                <h6 class="card-title mb-1">기본 디자인</h6>
+                                                <p class="card-text small text-muted mb-0">기존 방식과 동일</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card design-card h-100" data-design="template_sample1" style="cursor: pointer; border: 2px solid #dee2e6; transition: all 0.3s;">
+                                            <div class="card-body text-center">
+                                                <div class="mb-2">
+                                                    <input type="radio" name="design_radio" value="template_sample1" id="design_template_sample1" style="display: none;">
+                                                    <div style="font-size: 2.5rem; color: #fd7e14;">📊</div>
+                                                </div>
+                                                <h6 class="card-title mb-1">템플릿 1</h6>
+                                                <p class="card-text small text-muted mb-0">급여명세서 템플릿</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card design-card h-100 disabled" data-design="template_sample2" style="cursor: not-allowed; border: 2px solid #dee2e6; transition: all 0.3s; opacity: 0.6; pointer-events: none;">
+                                            <div class="card-body text-center">
+                                                <div class="mb-2">
+                                                    <input type="radio" name="design_radio" value="template_sample2" id="design_template_sample2" disabled style="display: none;">
+                                                    <div style="font-size: 2.5rem; color: #dc3545;">📋</div>
+                                                </div>
+                                                <h6 class="card-title mb-1">템플릿 2</h6>
+                                                <p class="card-text small text-muted mb-0">템플릿 준비 중입니다</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-text mt-2">원하는 디자인 카드를 클릭하여 선택하세요.</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <script>
+                    // 디자인 카드 선택 기능
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const designCards = document.querySelectorAll('.design-card');
+                        const hiddenInput = document.getElementById('design_name');
+                        
+                        // 초기 선택 상태 설정
+                        const defaultCard = document.querySelector('[data-design="default"]');
+                        if (defaultCard) {
+                            defaultCard.style.borderColor = '#0d6efd';
+                            defaultCard.style.backgroundColor = '#f0f7ff';
+                        }
+                        
+                        designCards.forEach(card => {
+                            // disabled 카드는 클릭 이벤트 추가하지 않음
+                            if (card.classList.contains('disabled')) {
+                                return;
+                            }
+                            
+                            card.addEventListener('click', function() {
+                                const designValue = this.getAttribute('data-design');
+                                
+                                // disabled 카드는 선택 불가
+                                if (this.classList.contains('disabled')) {
+                                    return;
+                                }
+                                
+                                // 모든 카드 스타일 초기화
+                                designCards.forEach(c => {
+                                    if (!c.classList.contains('disabled')) {
+                                        c.style.borderColor = '#dee2e6';
+                                        c.style.backgroundColor = '';
+                                    }
+                                });
+                                
+                                // 선택된 카드 스타일 적용
+                                this.style.borderColor = '#0d6efd';
+                                this.style.backgroundColor = '#f0f7ff';
+                                
+                                // hidden input 업데이트
+                                hiddenInput.value = designValue;
+                                
+                                // radio button 업데이트
+                                const radio = this.querySelector('input[type="radio"]');
+                                if (radio && !radio.disabled) {
+                                    radio.checked = true;
+                                }
+                                
+                                console.log('디자인 선택:', designValue);
+                            });
+                            
+                            // 호버 효과 (disabled 카드 제외)
+                            card.addEventListener('mouseenter', function() {
+                                if (this.classList.contains('disabled')) {
+                                    return;
+                                }
+                                if (this.style.borderColor !== 'rgb(13, 110, 253)') {
+                                    this.style.borderColor = '#adb5bd';
+                                    this.style.transform = 'translateY(-2px)';
+                                }
+                            });
+                            
+                            card.addEventListener('mouseleave', function() {
+                                if (this.classList.contains('disabled')) {
+                                    return;
+                                }
+                                if (this.style.borderColor !== 'rgb(13, 110, 253)') {
+                                    this.style.borderColor = '#dee2e6';
+                                    this.style.transform = '';
+                                }
+                            });
+                        });
+                    });
+                    </script>
+                    
+                    <div class="mb-3">
+                        {{ form.deduction_note.label(class="form-label") }}
+                        {{ form.deduction_note(class="form-control", rows="2", maxlength="200") }}
+                        <div class="form-text">선택사항: 기타 공제사항 메모 (최대 200자)</div>
+                    </div>
+                    
+                    <!-- 실시간 계산 미리보기 영역 -->
+                    <div id="previewArea" class="card bg-light mb-3 d-none">
+                        <div class="card-body">
+                            <h6 class="card-title">💰 계산 미리보기</h6>
+                            <div id="previewContent"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        {{ form.submit(class="btn btn-primary btn-lg") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 입력 가이드 -->
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">📚 입력 가이드</h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="inputGuideAccordion">
+                    <!-- 필수 필드 가이드 -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingRequired">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#collapseRequired" aria-expanded="true" aria-controls="collapseRequired">
+                                필수 입력 항목
+                            </button>
+                        </h2>
+                        <div id="collapseRequired" class="accordion-collapse collapse show" 
+                             aria-labelledby="headingRequired" data-bs-parent="#inputGuideAccordion">
+                            <div class="accordion-body">
+                                <ul>
+                                    <li><strong>이름</strong>: 직원의 성명을 입력하세요 (1-50자)</li>
+                                    <li><strong>주민번호 앞자리</strong>: 주민등록번호 앞 6자리만 입력하세요 (예: 123456)</li>
+                                    <li><strong>입사일</strong>: YYYY-MM-DD 형식으로 입력하세요 (예: 2024-01-01)</li>
+                                    <li><strong>기본급</strong>: 월 기본급을 원 단위로 입력하세요 (예: 3000000)</li>
+                                    <li><strong>부양가족수</strong>: 부양가족 수를 입력하세요 (0-10명, 기본값: 0)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 선택 필드 가이드 -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingOptional">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#collapseOptional" aria-expanded="false" aria-controls="collapseOptional">
+                                선택 입력 항목
+                            </button>
+                        </h2>
+                        <div id="collapseOptional" class="accordion-collapse collapse" 
+                             aria-labelledby="headingOptional" data-bs-parent="#inputGuideAccordion">
+                            <div class="accordion-body">
+                                <ul>
+                                    <li><strong>은행명</strong>: 급여 이체용 은행명 (예: KB국민은행, 신한은행)</li>
+                                    <li><strong>계좌번호</strong>: 급여 이체용 계좌번호 (예: 123-456-789012)</li>
+                                    <li><strong>연장근무시간</strong>: 월 연장근무 시간 (시간 단위)</li>
+                                    <li><strong>연장근무단가</strong>: 시간당 연장근무 단가 (원/시간)
+                                        <ul>
+                                            <li>💡 기본급을 입력하면 권장값이 자동으로 계산됩니다</li>
+                                            <li>권장값 계산식: (기본급 ÷ 20일 ÷ 8시간) × 1.5</li>
+                                            <li>권장값을 클릭하면 자동으로 입력됩니다</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>상여금</strong>: 상여금 금액 (원 단위)</li>
+                                    <li><strong>공제사항 메모</strong>: 기타 공제사항 메모 (최대 200자)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 계산 가이드 -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingCalculation">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#collapseCalculation" aria-expanded="false" aria-controls="collapseCalculation">
+                                계산 방법 안내
+                            </button>
+                        </h2>
+                        <div id="collapseCalculation" class="accordion-collapse collapse" 
+                             aria-labelledby="headingCalculation" data-bs-parent="#inputGuideAccordion">
+                            <div class="accordion-body">
+                                <h6>급여 계산 공식</h6>
+                                <ul>
+                                    <li><strong>총 지급액</strong> = 기본급 + 연장근무수당 + 상여금</li>
+                                    <li><strong>연장근무수당</strong> = 연장근무시간 × 연장근무단가</li>
+                                    <li><strong>총 공제액</strong> = 4대보험 + 소득세 + 지방소득세</li>
+                                    <li><strong>실수령액</strong> = 총 지급액 - 총 공제액</li>
+                                </ul>
+                                
+                                <h6 class="mt-3">4대보험 계산 기준</h6>
+                                <ul>
+                                    <li>국민연금: 기본급의 4.5% (상한액: 5,530,000원)</li>
+                                    <li>건강보험: 기본급의 3.545% (상한액: 5,530,000원)</li>
+                                    <li>장기요양: 건강보험의 12.95%</li>
+                                    <li>고용보험: 기본급의 0.9% (상한액: 5,530,000원)</li>
+                                </ul>
+                                
+                                <h6 class="mt-3">부양가족 공제액</h6>
+                                <ul>
+                                    <li>0명: 0원</li>
+                                    <li>1명: 150,000원</li>
+                                    <li>2명: 300,000원</li>
+                                    <li>3명: 450,000원</li>
+                                    <li>4명 이상: 600,000원</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- FAQ -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingFAQ">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#collapseFAQ" aria-expanded="false" aria-controls="collapseFAQ">
+                                자주 묻는 질문 (FAQ)
+                            </button>
+                        </h2>
+                        <div id="collapseFAQ" class="accordion-collapse collapse" 
+                             aria-labelledby="headingFAQ" data-bs-parent="#inputGuideAccordion">
+                            <div class="accordion-body">
+                                <h6>Q1. 부양가족수가 0명이어도 되나요?</h6>
+                                <p>네, 부양가족수는 0명도 유효한 값입니다. 부양가족이 없는 경우 0을 입력하세요.</p>
+                                
+                                <h6>Q2. 연장근무단가를 모르겠어요.</h6>
+                                <p>기본급을 입력하면 권장값이 자동으로 계산되어 표시됩니다. 권장값을 클릭하면 자동으로 입력됩니다.</p>
+                                
+                                <h6>Q3. 실시간 계산 미리보기는 언제 표시되나요?</h6>
+                                <p>기본급을 입력하면 자동으로 계산 결과가 표시됩니다. 다른 필드를 수정할 때마다 실시간으로 업데이트됩니다.</p>
+                                
+                                <h6>Q4. 엑셀 파일 업로드와 직접 입력의 차이는 무엇인가요?</h6>
+                                <p>엑셀 파일 업로드는 여러 직원을 한 번에 처리할 때 유용하고, 직접 입력은 1-2명의 직원을 빠르게 처리할 때 유용합니다.</p>
+                                
+                                <h6>Q5. 입력한 정보는 저장되나요?</h6>
+                                <p>현재는 세션에만 저장되며, 페이지를 새로고침하면 사라집니다. 로그인한 사용자의 경우 계산 결과는 데이터베이스에 저장됩니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 빠른 사용 가이드 -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="card-title">📋 빠른 사용 가이드</h5>
+                <ol>
+                    <li>필수 정보를 입력하세요: 이름, 주민번호 앞자리, 입사일, 기본급, 부양가족수</li>
+                    <li>선택 정보를 입력하세요: 연장근무시간, 연장근무단가(권장값 자동 계산), 상여금 등</li>
+                    <li>지급 기간과 출력 형식을 선택하세요</li>
+                    <li>입력 중 실시간으로 계산 결과를 미리볼 수 있습니다</li>
+                    <li>모든 정보를 입력한 후 "급여명세서 생성" 버튼을 클릭하세요</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/payroll_input.js') }}"></script>
+<script>
+    // 현재 날짜를 기본값으로 설정
+    document.addEventListener('DOMContentLoaded', function() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const periodField = document.getElementById('period');
+        if (periodField && !periodField.value) {
+            periodField.value = `${year}-${month}`;
+        }
+    });
+</script>
+{% endblock %}
+

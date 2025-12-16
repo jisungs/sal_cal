@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}About - 급여명세서 자동생성기{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h2 class="card-title mb-0">📖 About</h2>
+            </div>
+            <div class="card-body">
+                <h3 class="mb-4">급여명세서 자동생성기란?</h3>
+                <p class="lead">
+                    소상공인과 소규모 사업주를 위한 간편한 급여 계산 및 명세서 생성 서비스입니다.
+                </p>
+                
+                <h4 class="mt-4 mb-3">✨ 주요 기능</h4>
+                <ul class="list-group list-group-flush mb-4">
+                    <li class="list-group-item">
+                        <strong>4대보험 자동 계산</strong><br>
+                        국민연금, 건강보험, 장기요양, 고용보험을 자동으로 계산합니다.
+                    </li>
+                    <li class="list-group-item">
+                        <strong>소득세/지방소득세 자동 계산</strong><br>
+                        간이세액표 기반 누진세율을 적용하여 정확하게 계산합니다.
+                    </li>
+                    <li class="list-group-item">
+                        <strong>엑셀/PDF 자동 생성</strong><br>
+                        전문적인 급여명세서를 엑셀 또는 PDF 형식으로 생성합니다.
+                    </li>
+                    <li class="list-group-item">
+                        <strong>간편한 사용</strong><br>
+                        엑셀 파일만 업로드하면 자동으로 급여명세서가 생성됩니다.
+                    </li>
+                </ul>
+
+                <h4 class="mt-4 mb-3">🎯 타겟 사용자</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul>
+                            <li>10인 이하 소상공인</li>
+                            <li>프리랜서 고용주</li>
+                            <li>소규모 학원/과외 운영자</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul>
+                            <li>카페/식당 사장님</li>
+                            <li>기타 소규모 사업주</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mt-4">
+                    <h5 class="alert-heading">💡 사용 팁</h5>
+                    <p class="mb-0">
+                        샘플 템플릿 파일을 다운로드하여 사용하시면 더욱 편리합니다.
+                        필수 컬럼만 채우면 자동으로 급여명세서가 생성됩니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

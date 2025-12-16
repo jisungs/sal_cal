@@ -1,0 +1,24 @@
+# 급여명세서 자동생성기 - 웹 앱 전용 패키지
+
+# 공통 의존성
+openpyxl>=3.1.0
+pandas>=2.0.0
+reportlab>=4.0.0
+pillow>=10.0.0
+
+# 웹 앱 전용
+flask>=3.0.0
+flask-cors>=4.0.0
+werkzeug>=3.0.0
+
+# 데이터베이스 및 인증 (Phase 2)
+flask-sqlalchemy>=3.1.0
+flask-migrate>=4.0.0
+flask-login>=0.6.0
+flask-bcrypt>=1.0.0
+flask-wtf>=1.2.0
+flask-mail>=0.10.0
+psycopg2-binary>=2.9.0
+python-dotenv>=1.0.0
+email-validator>=2.0.0
+
