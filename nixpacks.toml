@@ -12,8 +12,11 @@ cmds = [
   "cp payroll_generator/assets/NanumGothic.ttf /usr/share/fonts/truetype/nanum/ 2>/dev/null || cp 'payroll_generator/assets/나눔 글꼴/나눔고딕/NanumFontSetup_TTF_GOTHIC/NanumGothic.ttf' /usr/share/fonts/truetype/nanum/ 2>/dev/null || true",
   "cp payroll_generator/assets/NanumGothic.ttf ~/.fonts/ 2>/dev/null || cp 'payroll_generator/assets/나눔 글꼴/나눔고딕/NanumFontSetup_TTF_GOTHIC/NanumGothic.ttf' ~/.fonts/ 2>/dev/null || true",
   "fc-cache -fv --force",
-  "fc-list | grep -i nanum || echo '폰트 확인 중...'",
-  "python3 -m pip install --upgrade pip || pip install --upgrade pip || true",
-  "pip install -r requirements.txt"
+  "fc-list | grep -i nanum || echo '폰트 확인 중...'"
 ]
+
+# Python 패키지 설치는 Nixpacks가 자동으로 처리합니다
+# requirements.txt 파일이 있으면 Nixpacks가 자동으로 Python 환경을 설정하고
+# [phases.build] 단계에서 pip install을 실행합니다
+# 따라서 [phases.install]에서 수동으로 pip install을 실행할 필요가 없습니다
 
