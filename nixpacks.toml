@@ -19,9 +19,10 @@ cmds = [
 # Python 패키지 설치는 [phases.build]에서 명시적으로 처리
 # nixpacks.toml에 커스텀 설정이 있으면 자동 빌드가 실행되지 않을 수 있으므로
 # 명시적으로 Python 패키지를 설치해야 합니다
-# python3Packages.pip가 [phases.setup]에서 설치되므로 python3 -m pip 사용 가능
+# python3Packages.pip가 제대로 작동하지 않을 수 있으므로 ensurepip로 pip를 먼저 설치
 [phases.build]
 cmds = [
+  "python3 -m ensurepip --upgrade --default-pip || curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3 get-pip.py",
   "python3 -m pip install --upgrade pip",
   "python3 -m pip install -r requirements.txt"
 ]
