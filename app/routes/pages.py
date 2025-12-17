@@ -26,7 +26,7 @@ def contact():
     return render_template('pages/contact.html')
 
 
-@pages_bp.route('/main')
+@pages_bp.route('/')
 def main():
     """Main 페이지"""
     return render_template('pages/main.html')
