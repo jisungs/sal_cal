@@ -1,8 +1,9 @@
 # Nixpacks 설정 파일 - Railway 빌드 설정
 # LibreOffice 및 한글 폰트 설치를 위한 설정
 
+# Python3는 pip를 포함하고 있으므로 별도로 pip를 지정할 필요 없음
 [phases.setup]
-nixPkgs = ["libreoffice", "python3", "pip"]
+nixPkgs = ["libreoffice", "python3"]
 
 [phases.install]
 cmds = [
