@@ -73,3 +73,4 @@ payroll_generator/assets/D2coding/
 # 빌드 파일 (데스크톱 앱용)
 dist/
 build/
+plan/
