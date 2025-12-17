@@ -15,8 +15,11 @@ cmds = [
   "fc-list | grep -i nanum || echo '폰트 확인 중...'"
 ]
 
-# Python 패키지 설치는 Nixpacks가 자동으로 처리합니다
-# requirements.txt 파일이 있으면 Nixpacks가 자동으로 Python 환경을 설정하고
-# [phases.build] 단계에서 pip install을 실행합니다
-# 따라서 [phases.install]에서 수동으로 pip install을 실행할 필요가 없습니다
+# Python 패키지 설치는 [phases.build]에서 명시적으로 처리
+# nixpacks.toml에 커스텀 설정이 있으면 자동 빌드가 실행되지 않을 수 있으므로
+# 명시적으로 Python 패키지를 설치해야 합니다
+[phases.build]
+cmds = [
+  "pip install -r requirements.txt"
+]
 
