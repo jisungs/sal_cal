@@ -31,3 +31,9 @@ def main():
     """Main 페이지"""
     return render_template('pages/main.html')
 
+
+@pages_bp.route('/')
+def index():
+    """Index 페이지"""
+    return render_template('pages/main.html')
+
