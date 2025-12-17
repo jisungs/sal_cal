@@ -88,6 +88,26 @@ def create_app(config_name=None):
     from app.routes.main import register_error_handlers
     register_error_handlers(app)
     
+    # 데이터베이스 연결 및 테이블 확인 (앱 시작 시)
+    try:
+        with app.app_context():
+            # 데이터베이스 연결 테스트
+            db.engine.connect()
+            app.logger.info("데이터베이스 연결 성공")
+            
+            # users 테이블 존재 확인
+            from sqlalchemy import inspect
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
+            
+            if 'users' not in tables:
+                app.logger.warning("⚠️ 'users' 테이블이 존재하지 않습니다. 마이그레이션을 실행하세요: flask db upgrade")
+            else:
+                app.logger.info("✅ 데이터베이스 테이블 확인 완료")
+    except Exception as e:
+        app.logger.error(f"❌ 데이터베이스 연결 실패: {str(e)}")
+        app.logger.error("DATABASE_URL 환경 변수를 확인하고 마이그레이션을 실행하세요: flask db upgrade")
+    
     # 파일 정리 스케줄러 등록 (앱 시작 시)
     # Flask 2.2+에서는 @app.before_first_request가 deprecated되었으므로
     # 앱 컨텍스트 내에서 직접 실행

@@ -22,18 +22,29 @@ def register():
     
     form = RegistrationForm()
     if form.validate_on_submit():
-        # 사용자 생성
-        user = User(
-            email=form.email.data,
-            username=form.username.data
-        )
-        user.set_password(form.password.data)
-        
-        db.session.add(user)
-        db.session.commit()
-        
-        flash('회원가입이 완료되었습니다. 로그인해주세요.', 'success')
-        return redirect(url_for('auth.login'))
+        try:
+            # 사용자 생성
+            user = User(
+                email=form.email.data,
+                username=form.username.data
+            )
+            user.set_password(form.password.data)
+            
+            db.session.add(user)
+            db.session.commit()
+            
+            flash('회원가입이 완료되었습니다. 로그인해주세요.', 'success')
+            return redirect(url_for('auth.login'))
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.exception(f'회원가입 오류: {str(e)}')
+            # 데이터베이스 연결 오류인지 확인
+            if 'relation "users" does not exist' in str(e) or 'no such table: users' in str(e):
+                flash('데이터베이스 테이블이 생성되지 않았습니다. 관리자에게 문의하세요.', 'danger')
+            elif 'could not connect' in str(e).lower() or 'connection' in str(e).lower():
+                flash('데이터베이스 연결에 실패했습니다. 잠시 후 다시 시도해주세요.', 'danger')
+            else:
+                flash('회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 'danger')
     
     return render_template('auth/register.html', form=form, title='회원가입')
 
@@ -46,28 +57,38 @@ def login():
     
     form = LoginForm()
     if form.validate_on_submit():
-        # 사용자 조회
-        user = User.query.filter_by(email=form.email.data).first()
-        
-        if user and user.check_password(form.password.data):
-            if not user.is_active:
-                flash('계정이 비활성화되었습니다. 관리자에게 문의하세요.', 'danger')
-                return redirect(url_for('auth.login'))
+        try:
+            # 사용자 조회
+            user = User.query.filter_by(email=form.email.data).first()
             
-            # 로그인 처리
-            login_user(user, remember=form.remember_me.data)
-            user.last_login = datetime.utcnow()
-            db.session.commit()
-            
-            # 다음 페이지로 리다이렉트
-            next_page = request.args.get('next')
-            if not next_page or not next_page.startswith('/'):
-                next_page = url_for('main.index')
-            
-            flash(f'{user.username}님, 환영합니다!', 'success')
-            return redirect(next_page)
-        else:
-            flash('이메일 또는 비밀번호가 올바르지 않습니다.', 'danger')
+            if user and user.check_password(form.password.data):
+                if not user.is_active:
+                    flash('계정이 비활성화되었습니다. 관리자에게 문의하세요.', 'danger')
+                    return redirect(url_for('auth.login'))
+                
+                # 로그인 처리
+                login_user(user, remember=form.remember_me.data)
+                user.last_login = datetime.utcnow()
+                db.session.commit()
+                
+                # 다음 페이지로 리다이렉트
+                next_page = request.args.get('next')
+                if not next_page or not next_page.startswith('/'):
+                    next_page = url_for('main.index')
+                
+                flash(f'{user.username}님, 환영합니다!', 'success')
+                return redirect(next_page)
+            else:
+                flash('이메일 또는 비밀번호가 올바르지 않습니다.', 'danger')
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.exception(f'로그인 오류: {str(e)}')
+            if 'relation "users" does not exist' in str(e) or 'no such table: users' in str(e):
+                flash('데이터베이스 테이블이 생성되지 않았습니다. 관리자에게 문의하세요.', 'danger')
+            elif 'could not connect' in str(e).lower() or 'connection' in str(e).lower():
+                flash('데이터베이스 연결에 실패했습니다. 잠시 후 다시 시도해주세요.', 'danger')
+            else:
+                flash('로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 'danger')
     
     return render_template('auth/login.html', form=form, title='로그인')
 

@@ -3,7 +3,12 @@
 """WSGI 진입점 - Railway 배포용"""
 
 import os
+from dotenv import load_dotenv
 from app import create_app
+
+# .env 파일에서 환경 변수 로드 (로컬 개발 환경용)
+# Railway에서는 환경 변수를 대시보드에서 설정하므로 .env 파일은 무시됨
+load_dotenv()
 
 # 환경 변수에서 설정 이름 가져오기
 config_name = os.environ.get('FLASK_ENV', 'production')

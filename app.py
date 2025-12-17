@@ -3,7 +3,11 @@
 """급여명세서 자동생성기 웹 버전 - Flask 애플리케이션 진입점"""
 
 import os
+from dotenv import load_dotenv
 from app import create_app
+
+# .env 파일에서 환경 변수 로드 (로컬 개발 환경용)
+load_dotenv()
 
 # 환경 변수에서 설정 이름 가져오기
 config_name = os.environ.get('FLASK_ENV', 'development')

@@ -69,15 +69,15 @@ class TemplateDesign(BaseDesign):
         """템플릿 파일 경로 찾기
         
         경로 우선순위:
-        1. sample 폴더 (최우선)
-        2. PyInstaller resource path
-        3. 개발 환경 path
+        1. templates/designs 폴더 (Railway 배포 환경 우선)
+        2. sample 폴더 (로컬 개발 환경)
+        3. PyInstaller resource path
         
         템플릿 파일명 매핑:
-        - template_sample1.xlsx -> 급여명세서_template.xlsx
-        - template_sample2.xlsx -> 임금명세서양식_template3.xlsx
+        - template_sample1.xlsx -> 급여명세서_template.xlsx (sample 폴더용)
+        - template_sample2.xlsx -> 임금명세서양식_template3.xlsx (sample 폴더용)
         """
-        # 템플릿 파일명 매핑
+        # 템플릿 파일명 매핑 (sample 폴더용)
         template_mapping = {
             'template_sample1.xlsx': '급여명세서_template.xlsx',
             'template_sample2.xlsx': '임금명세서양식_template3.xlsx'
@@ -85,13 +85,22 @@ class TemplateDesign(BaseDesign):
         actual_filename = template_mapping.get(self.template_filename, self.template_filename)
         
         paths_to_try = []
-        
-        # 1. sample 폴더 경로 (최우선)
-        # 프로젝트 루트 찾기
         current_file = Path(__file__).resolve()
-        project_root = None
         
-        # payroll_generator/templates/designs/template_design.py에서 프로젝트 루트 찾기
+        # 1. templates/designs 폴더 (Railway 배포 환경 우선)
+        # 이 폴더의 파일은 Git에 포함되어 Railway 배포 시 자동 포함됨
+        designs_path = current_file.parent / self.template_filename
+        if designs_path.exists() and designs_path.is_file():
+            paths_to_try.append(str(designs_path))
+            logger.debug(f"[템플릿 경로] templates/designs 폴더 경로 추가: {designs_path}")
+        else:
+            # 파일이 없어도 경로는 추가 (로깅용)
+            paths_to_try.append(str(designs_path))
+            logger.debug(f"[템플릿 경로] templates/designs 폴더에 파일 없음: {designs_path}")
+        
+        # 2. sample 폴더 경로 (로컬 개발 환경)
+        # 프로젝트 루트 찾기
+        project_root = None
         for parent in current_file.parents:
             if (parent / 'sample').exists() and (parent / 'sample' / actual_filename).exists():
                 project_root = parent
@@ -102,25 +111,20 @@ class TemplateDesign(BaseDesign):
             paths_to_try.append(str(sample_path))
             logger.debug(f"[템플릿 경로] sample 폴더 경로 추가: {sample_path}")
         
-        # 2. PyInstaller 환경
+        # 3. PyInstaller 환경
         try:
             from ..utils import resource_path
-            pyinstaller_path = resource_path(f'templates/designs/{actual_filename}')
+            pyinstaller_path = resource_path(f'templates/designs/{self.template_filename}')
             paths_to_try.append(pyinstaller_path)
             logger.debug(f"[템플릿 경로] PyInstaller 경로 추가: {pyinstaller_path}")
         except ImportError:
             try:
                 from payroll_generator.utils import resource_path
-                pyinstaller_path = resource_path(f'templates/designs/{actual_filename}')
+                pyinstaller_path = resource_path(f'templates/designs/{self.template_filename}')
                 paths_to_try.append(pyinstaller_path)
                 logger.debug(f"[템플릿 경로] PyInstaller 경로 추가 (절대 경로): {pyinstaller_path}")
             except ImportError:
                 logger.debug("[템플릿 경로] PyInstaller resource_path 사용 불가")
-        
-        # 3. 개발 환경 (기존 templates/designs 폴더)
-        dev_path = Path(__file__).parent / actual_filename
-        paths_to_try.append(str(dev_path))
-        logger.debug(f"[템플릿 경로] 개발 환경 경로 추가: {dev_path}")
         
         # 경로 확인 및 반환
         for path in paths_to_try:
@@ -131,16 +135,18 @@ class TemplateDesign(BaseDesign):
         
         # 모든 경로 시도 실패
         error_msg = (
-            f"템플릿 파일을 찾을 수 없습니다: {actual_filename} "
-            f"(요청된 파일명: {self.template_filename}).\n"
+            f"템플릿 파일을 찾을 수 없습니다: {self.template_filename}.\n"
             f"다음 경로를 시도했습니다:\n"
         )
         for i, path in enumerate(paths_to_try, 1):
-            error_msg += f"  {i}. {path}\n"
+            exists = "✓" if Path(path).exists() else "✗"
+            error_msg += f"  {i}. [{exists}] {path}\n"
         error_msg += (
-            f"\n템플릿 파일이 sample 폴더에 있는지 확인하세요:\n"
-            f"  - sample/{actual_filename}"
+            f"\n템플릿 파일이 다음 위치에 있는지 확인하세요:\n"
+            f"  - payroll_generator/templates/designs/{self.template_filename} (Railway 배포용)\n"
+            f"  - sample/{actual_filename} (로컬 개발용)"
         )
+        logger.error(error_msg)
         raise FileNotFoundError(error_msg)
     
     def generate_excel(self, payroll_data, employee_data, output_path, period):
