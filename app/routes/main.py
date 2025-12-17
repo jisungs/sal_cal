@@ -49,12 +49,12 @@ def index():
         log_activity(
             user_id=user_id,
             activity_type='page_view',
-            activity_data={'page': 'index'}
+            activity_data={'page': 'main'}
         )
     except Exception as e:
         logger.error(f'활동 로그 저장 오류: {str(e)}')
     
-    return render_template('index.html')
+    return render_template('pages/main.html')
 
 
 @main_bp.route('/upload', methods=['POST'])
