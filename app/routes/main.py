@@ -42,7 +42,7 @@ def allowed_file(filename):
 
 @main_bp.route('/')
 def index():
-    """메인 페이지"""
+    """메인 페이지 - Main.html로 리다이렉트"""
     # Phase 4: 페이지뷰 로그 저장
     try:
         user_id = current_user.id if current_user.is_authenticated else None
@@ -54,6 +54,7 @@ def index():
     except Exception as e:
         logger.error(f'활동 로그 저장 오류: {str(e)}')
     
+    # Main.html 템플릿 직접 렌더링
     return render_template('pages/main.html')
 
 
