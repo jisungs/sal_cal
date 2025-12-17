@@ -1,11 +1,8 @@
 # Nixpacks 설정 파일 - Railway 빌드 설정
 # LibreOffice 및 한글 폰트 설치를 위한 설정
 
-# Python은 Nixpacks가 자동으로 감지하므로 명시적으로 지정할 필요 없음
-# requirements.txt 파일이 있으면 자동으로 Python 환경이 설정됨
-
 [phases.setup]
-nixPkgs = ["libreoffice", "python3"]
+nixPkgs = ["libreoffice", "python3", "pip"]
 
 [phases.install]
 cmds = [
@@ -14,9 +11,8 @@ cmds = [
   "cp payroll_generator/assets/NanumGothic.ttf /usr/share/fonts/truetype/nanum/ 2>/dev/null || cp 'payroll_generator/assets/나눔 글꼴/나눔고딕/NanumFontSetup_TTF_GOTHIC/NanumGothic.ttf' /usr/share/fonts/truetype/nanum/ 2>/dev/null || true",
   "cp payroll_generator/assets/NanumGothic.ttf ~/.fonts/ 2>/dev/null || cp 'payroll_generator/assets/나눔 글꼴/나눔고딕/NanumFontSetup_TTF_GOTHIC/NanumGothic.ttf' ~/.fonts/ 2>/dev/null || true",
   "fc-cache -fv --force",
-  "fc-list | grep -i nanum || echo '폰트 확인 중...'"
+  "fc-list | grep -i nanum || echo '폰트 확인 중...'",
+  "python3 -m pip install --upgrade pip || pip install --upgrade pip || true",
+  "pip install -r requirements.txt"
 ]
-
-# Python 패키지 설치는 Nixpacks가 자동으로 처리
-# requirements.txt 파일이 있으면 자동으로 pip install이 실행됨
 
