@@ -1,11 +1,16 @@
 # Nixpacks 설정 파일 - Railway 빌드 설정
-# LibreOffice 설치를 위한 설정
+# LibreOffice 및 한글 폰트 설치를 위한 설정
 
 [phases.setup]
 nixPkgs = ["libreoffice"]
 
 [phases.install]
 cmds = [
+  "apt-get update && apt-get install -y libreoffice libreoffice-writer libreoffice-calc libreoffice-impress fonts-nanum fonts-nanum-coding fontconfig || true",
+  "mkdir -p /usr/share/fonts/truetype/nanum ~/.fonts",
+  "cp payroll_generator/assets/NanumGothic.ttf /usr/share/fonts/truetype/nanum/ 2>/dev/null || cp 'payroll_generator/assets/나눔 글꼴/나눔고딕/NanumFontSetup_TTF_GOTHIC/NanumGothic.ttf' /usr/share/fonts/truetype/nanum/ 2>/dev/null || true",
+  "cp payroll_generator/assets/NanumGothic.ttf ~/.fonts/ 2>/dev/null || cp 'payroll_generator/assets/나눔 글꼴/나눔고딕/NanumFontSetup_TTF_GOTHIC/NanumGothic.ttf' ~/.fonts/ 2>/dev/null || true",
+  "fc-cache -fv",
   "pip install -r requirements.txt"
 ]
 

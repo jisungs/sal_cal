@@ -594,14 +594,22 @@ class TemplateDesign(BaseDesign):
             
             # 폴백: 기본 PDF 생성기로 폴백 (Railway 배포 환경 대응)
             # Railway 등 배포 환경에서는 LibreOffice가 없을 수 있으므로 기본 PDF 생성기 사용
+            # 하지만 템플릿 디자인은 유지하기 위해 design_name을 전달
             logger.warning(
                 f"엑셀→PDF 자동 변환에 실패했습니다. "
                 f"LibreOffice가 설치되어 있지 않거나 사용할 수 없습니다. "
-                f"기본 PDF 생성 방식으로 폴백합니다."
+                f"기본 PDF 생성 방식으로 폴백합니다. (템플릿 엑셀 파일은 생성됨: {temp_excel_path})"
             )
-            logger.info(f"템플릿 엑셀 파일은 생성되었습니다: {temp_excel_path}")
             
-            # 기본 PDF 생성기로 폴백 (템플릿 데이터는 사용)
+            # 템플릿 파일명에서 design_name 추출
+            # template_sample1.xlsx -> template_sample1
+            design_name_from_template = self.template_filename.replace('.xlsx', '')
+            logger.info(f"템플릿 디자인 유지를 위해 design_name={design_name_from_template} 사용")
+            
+            # 기본 PDF 생성기로 폴백하되, 템플릿 디자인 이름을 전달하여
+            # PDF 생성기가 다시 템플릿 디자인을 시도하도록 함
+            # 하지만 LibreOffice가 없으므로 결국 기본 디자인으로 생성됨
+            # 대신 엑셀 파일은 템플릿 디자인으로 생성되었으므로 사용자에게 제공
             try:
                 from ...pdf_generator import PDFGenerator
             except ImportError:
@@ -611,10 +619,18 @@ class TemplateDesign(BaseDesign):
                     from pdf_generator import PDFGenerator
             
             pdf_gen = PDFGenerator()
-            logger.info("기본 PDF 생성 방식으로 폴백하여 PDF 생성 중...")
+            logger.info(f"기본 PDF 생성 방식으로 폴백하여 PDF 생성 중... (design_name={design_name_from_template})")
+            
+            # design_name을 전달하지만, LibreOffice가 없으므로 결국 기본 디자인으로 생성됨
+            # 이 경우 엑셀 파일은 템플릿 디자인으로 생성되었으므로 사용자에게 제공
             result = pdf_gen.generate_payslip(
                 payroll_data, employee_data, output_path, period,
-                use_template=False, design_name=None
+                use_template=False, design_name=design_name_from_template
+            )
+            logger.warning(
+                f"PDF는 기본 디자인으로 생성되었습니다. "
+                f"템플릿 디자인이 적용된 엑셀 파일은 {temp_excel_path}에 있습니다. "
+                f"LibreOffice를 설치하면 템플릿 디자인 PDF를 생성할 수 있습니다."
             )
             logger.info(f"기본 PDF 생성 완료: {output_path}")
             return result
