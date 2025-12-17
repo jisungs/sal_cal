@@ -549,12 +549,50 @@ class TemplateDesign(BaseDesign):
                             libreoffice_cmd = path
                             break
                 
+                # 한글 폰트 인식을 위한 환경 변수 설정
+                env = os.environ.copy()
+                
+                # LibreOffice 실행 전 폰트 캐시 강제 업데이트
+                try:
+                    fc_cache_result = subprocess.run(
+                        ['fc-cache', '-fv', '--force'],
+                        capture_output=True,
+                        timeout=10,
+                        check=False,
+                        text=True
+                    )
+                    if fc_cache_result.returncode == 0:
+                        logger.debug("폰트 캐시 업데이트 완료")
+                        # 폰트 목록 확인 (디버깅용)
+                        fc_list_result = subprocess.run(
+                            ['fc-list', ':', 'family'],
+                            capture_output=True,
+                            timeout=5,
+                            check=False,
+                            text=True
+                        )
+                        if 'Nanum' in fc_list_result.stdout or '나눔' in fc_list_result.stdout:
+                            logger.info("한글 폰트(Nanum) 확인됨")
+                        else:
+                            logger.warning("한글 폰트가 시스템에 등록되지 않았을 수 있습니다")
+                    else:
+                        logger.debug(f"폰트 캐시 업데이트 실패: {fc_cache_result.stderr}")
+                except FileNotFoundError:
+                    logger.debug("fc-cache 명령어를 찾을 수 없습니다 (fontconfig 미설치 가능성)")
+                except Exception as e:
+                    logger.debug(f"폰트 캐시 업데이트 중 오류 (무시): {e}")
+                
+                # LibreOffice가 폰트를 인식하도록 환경 변수 설정
+                # SAL_USE_VCLPLUGIN: LibreOffice의 VCL 플러그인 설정
+                # FONTCONFIG_FILE: fontconfig 설정 파일 경로 (선택사항)
+                env['SAL_USE_VCLPLUGIN'] = 'gen'  # 일반 VCL 플러그인 사용
+                
                 logger.info(f"LibreOffice를 사용하여 PDF 변환 중... (명령어: {libreoffice_cmd})")
                 result = subprocess.run([
                     libreoffice_cmd, '--headless', '--convert-to', 'pdf',
                     '--outdir', output_dir,
                     temp_excel_path
-                ], check=True, capture_output=True, timeout=30)
+                ], check=True, capture_output=True, timeout=30, env=env)
                 
                 # 출력 파일명 확인 및 이동
                 pdf_name = os.path.basename(temp_excel_path).replace('.xlsx', '.pdf')
