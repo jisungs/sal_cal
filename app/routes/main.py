@@ -42,7 +42,10 @@ def allowed_file(filename):
 
 @main_bp.route('/')
 def index():
-    """메인 페이지 - Main.html로 리다이렉트"""
+    """메인 페이지 - Main.html 렌더링
+    
+    Railway 배포 환경에서도 pages/main.html이 표시되도록 명시적으로 설정
+    """
     # Phase 4: 페이지뷰 로그 저장
     try:
         user_id = current_user.id if current_user.is_authenticated else None
@@ -54,7 +57,8 @@ def index():
     except Exception as e:
         logger.error(f'활동 로그 저장 오류: {str(e)}')
     
-    # Main.html 템플릿 직접 렌더링
+    # Main.html 템플릿 직접 렌더링 (명시적으로 pages/main.html 사용)
+    logger.info("루트 경로(/) 접근: pages/main.html 렌더링")
     return render_template('pages/main.html')
 
 
