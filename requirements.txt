@@ -44,6 +44,9 @@ dnspython==2.8.0
 idna==3.11
 charset-normalizer==3.4.4
 
+# 웹 서버 (Railway 배포용)
+gunicorn==21.2.0
+
 # 의존성 패키지
 numpy==2.3.4
 python-dateutil==2.9.0.post0

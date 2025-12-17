@@ -14,6 +14,6 @@ app = create_app(config_name)
 if __name__ == '__main__':
     # 개발 환경에서만 디버그 모드 활성화
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
-    # 포트 설정: 환경 변수로 지정 가능, 기본값은 5001 (macOS AirPlay와 충돌 방지)
-    port = int(os.environ.get('FLASK_RUN_PORT', 5001))
+    # 포트 설정: Railway는 PORT 환경 변수를 제공, 없으면 FLASK_RUN_PORT 또는 기본값 5001 사용
+    port = int(os.environ.get('PORT', os.environ.get('FLASK_RUN_PORT', 5001)))
     app.run(debug=debug_mode, host='0.0.0.0', port=port)
