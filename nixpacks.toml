@@ -1,0 +1,11 @@
+# Nixpacks 설정 파일 - Railway 빌드 설정
+# LibreOffice 설치를 위한 설정
+
+[phases.setup]
+nixPkgs = ["libreoffice"]
+
+[phases.install]
+cmds = [
+  "pip install -r requirements.txt"
+]
+

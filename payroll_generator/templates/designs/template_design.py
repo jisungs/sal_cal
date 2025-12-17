@@ -592,30 +592,32 @@ class TemplateDesign(BaseDesign):
             except Exception as e:
                 logger.warning(f"COM 객체 변환 실패: {e}")
             
-            # 폴백: 엑셀 파일을 PDF로 복사하거나 에러 발생
-            # 기본 PDF 생성기로 폴백하지 않고, 엑셀 파일 경로를 반환하거나 에러 발생
-            error_msg = (
+            # 폴백: 기본 PDF 생성기로 폴백 (Railway 배포 환경 대응)
+            # Railway 등 배포 환경에서는 LibreOffice가 없을 수 있으므로 기본 PDF 생성기 사용
+            logger.warning(
                 f"엑셀→PDF 자동 변환에 실패했습니다. "
-                f"템플릿 엑셀 파일은 생성되었습니다: {temp_excel_path}\n"
-                f"PDF 변환을 위해 다음 중 하나를 설치하세요:\n"
-                f"  1. LibreOffice (권장): brew install --cask libreoffice (Mac) 또는 apt-get install libreoffice (Linux)\n"
-                f"  2. Windows: Microsoft Excel 및 pywin32 (pip install pywin32)\n"
-                f"\n또는 생성된 엑셀 파일을 수동으로 PDF로 변환하세요."
+                f"LibreOffice가 설치되어 있지 않거나 사용할 수 없습니다. "
+                f"기본 PDF 생성 방식으로 폴백합니다."
             )
-            logger.error(error_msg)
+            logger.info(f"템플릿 엑셀 파일은 생성되었습니다: {temp_excel_path}")
             
-            # 엑셀 파일을 출력 경로로 복사 (최소한 엑셀 파일은 제공)
-            import shutil
-            excel_output_path = output_path.replace('.pdf', '.xlsx')
-            shutil.copy2(temp_excel_path, excel_output_path)
-            logger.info(f"엑셀 파일을 생성했습니다: {excel_output_path}")
+            # 기본 PDF 생성기로 폴백 (템플릿 데이터는 사용)
+            try:
+                from ...pdf_generator import PDFGenerator
+            except ImportError:
+                try:
+                    from payroll_generator.pdf_generator import PDFGenerator
+                except ImportError:
+                    from pdf_generator import PDFGenerator
             
-            # PDF 변환 실패 시 예외 발생 (기본 디자인으로 폴백 방지)
-            raise RuntimeError(
-                f"템플릿 디자인 PDF 변환 실패. "
-                f"엑셀 파일은 생성되었습니다: {excel_output_path}. "
-                f"PDF 변환 라이브러리를 설치하거나 엑셀 파일을 수동으로 PDF로 변환하세요."
+            pdf_gen = PDFGenerator()
+            logger.info("기본 PDF 생성 방식으로 폴백하여 PDF 생성 중...")
+            result = pdf_gen.generate_payslip(
+                payroll_data, employee_data, output_path, period,
+                use_template=False, design_name=None
             )
+            logger.info(f"기본 PDF 생성 완료: {output_path}")
+            return result
             
         finally:
             # 임시 엑셀 파일은 디버깅을 위해 유지 (선택사항)
