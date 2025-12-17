@@ -1,93 +1,69 @@
 {% extends "base.html" %}
 
-{% block title %}급여명세서 자동생성기 - 파일 업로드{% endblock %}
+{% block title %}Main - 급여명세서 자동생성기 간단 서비스 설명{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8">
+    <div class="col-md-10">
         <div class="card shadow">
             <div class="card-header bg-primary text-white">
-                <h3 class="card-title mb-0">📄 급여명세서 생성</h3>
+                <h2 class="card-title mb-0">Main</h2>
             </div>
             <div class="card-body">
-                <form id="uploadForm" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <label for="file" class="form-label">직원 정보 엑셀 파일</label>
-                        <input type="file" class="form-control" id="file" name="file" 
-                               accept=".xlsx,.xls" required>
-                        <div class="form-text">
-                            엑셀 파일(.xlsx, .xls)만 업로드 가능합니다. (최대 16MB)
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="period" class="form-label">지급 기간</label>
-                        <input type="text" class="form-control" id="period" name="period" 
-                               value="{{ current_date }}" placeholder="2025-01" required>
-                        <div class="form-text">형식: YYYY-MM (예: 2025-01)</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">출력 형식</label>
-                        <div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="format" 
-                                       id="format_excel" value="excel">
-                                <label class="form-check-label" for="format_excel">엑셀</label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="format" 
-                                       id="format_pdf" value="pdf">
-                                <label class="form-check-label" for="format_pdf">PDF</label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="format" 
-                                       id="format_both" value="both" checked>
-                                <label class="form-check-label" for="format_both">둘 다</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="errorMessage" class="alert alert-danger d-none" role="alert"></div>
-                    <div id="successMessage" class="alert alert-success d-none" role="alert"></div>
-
-                    <button type="submit" class="btn btn-primary btn-lg w-100" id="submitBtn">
-                        <span id="submitText">생성하기</span>
-                        <span id="submitSpinner" class="spinner-border spinner-border-sm d-none" 
-                              role="status" aria-hidden="true"></span>
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <div class="card mt-4">
-            <div class="card-body">
-                <h5 class="card-title">📋 사용 방법</h5>
-                <ol>
-                    <li>직원 정보가 포함된 엑셀 파일을 준비하세요.</li>
-                    <li>필수 컬럼: 이름, 주민번호, 입사일, 기본급, 부양가족수</li>
-                    <li>파일을 업로드하고 지급 기간을 입력하세요.</li>
-                    <li>출력 형식을 선택하고 생성하기 버튼을 클릭하세요.</li>
-                </ol>
-                <p class="text-muted mb-0">
-                    <small>샘플 템플릿은 <code>payroll_generator/templates/employee_template.xlsx</code>를 참고하세요.</small>
+                <h3 class="mb-4">급여명세서 자동생성기란?</h3>
+                <p class="lead">
+                    소상공인과 소규모 사업주를 위한 간편한 급여 계산 및 명세서 생성 서비스입니다.
                 </p>
+                
+                <h4 class="mt-4 mb-3">✨ 주요 기능</h4>
+                <ul class="list-group list-group-flush mb-4">
+                    <li class="list-group-item">
+                        <strong>4대보험 자동 계산</strong><br>
+                        국민연금, 건강보험, 장기요양, 고용보험을 자동으로 계산합니다.
+                    </li>
+                    <li class="list-group-item">
+                        <strong>소득세/지방소득세 자동 계산</strong><br>
+                        간이세액표 기반 누진세율을 적용하여 정확하게 계산합니다.
+                    </li>
+                    <li class="list-group-item">
+                        <strong>엑셀/PDF 자동 생성</strong><br>
+                        전문적인 급여명세서를 엑셀 또는 PDF 형식으로 생성합니다.
+                    </li>
+                    <li class="list-group-item">
+                        <strong>간편한 사용</strong><br>
+                        엑셀 파일만 업로드하면 자동으로 급여명세서가 생성됩니다.
+                    </li>
+                </ul>
+
+                <h4 class="mt-4 mb-3">🎯 타겟 사용자</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul>
+                            <li>10인 이하 소상공인</li>
+                            <li>프리랜서 고용주</li>
+                            <li>소규모 학원/과외 운영자</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul>
+                            <li>카페/식당 사장님</li>
+                            <li>기타 소규모 사업주</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mt-4">
+                    <h5 class="alert-heading">💡 사용 팁</h5>
+                    <p class="mb-0">
+                        <ul>
+                            <li>현재는 베타 버전으로 메뉴바에서 문서 만들기 란에 한명 문서 만들기만 가능합니다.</li>
+                            <li>여러명 문서 만들기와 엑셀 파일 업로드는 추후 추가 예정입니다.</li>
+                        </ul>
+                    </p>
+                </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
-<script>
-    // 현재 날짜를 기본값으로 설정
-    document.addEventListener('DOMContentLoaded', function() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        document.getElementById('period').value = `${year}-${month}`;
-    });
-</script>
 {% endblock %}
 
