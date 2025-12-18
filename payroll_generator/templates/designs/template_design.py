@@ -657,11 +657,20 @@ class TemplateDesign(BaseDesign):
                 except Exception as e:
                     logger.warning(f"LibreOffice 버전 확인 중 오류: {e}")
                 
+                # 변환 전 출력 디렉토리 상태 확인
+                before_files = set(os.listdir(output_dir)) if os.path.exists(output_dir) else set()
+                logger.debug(f"변환 전 출력 디렉토리 파일: {list(before_files)}")
+                
                 result = subprocess.run([
                     libreoffice_cmd, '--headless', '--convert-to', 'pdf',
                     '--outdir', output_dir,
                     temp_excel_path
                 ], check=False, capture_output=True, timeout=30, env=env, text=True)
+                
+                # 변환 후 출력 디렉토리 상태 확인
+                after_files = set(os.listdir(output_dir)) if os.path.exists(output_dir) else set()
+                new_files = after_files - before_files
+                logger.info(f"변환 후 새로 생성된 파일: {list(new_files)}")
                 
                 # 변환 결과 확인
                 if result.returncode != 0:
@@ -674,15 +683,71 @@ class TemplateDesign(BaseDesign):
                         logger.error(f"출력 디렉토리 내용: {os.listdir(output_dir)}")
                     raise subprocess.CalledProcessError(result.returncode, libreoffice_cmd, result.stdout, result.stderr)
                 
-                # 출력 파일명 확인 및 이동
-                pdf_name = os.path.basename(temp_excel_path).replace('.xlsx', '.pdf')
-                pdf_path = os.path.join(output_dir, pdf_name)
+                # 변환 성공 후 출력 디렉토리에서 PDF 파일 찾기
+                # LibreOffice는 입력 파일명을 기반으로 PDF 파일명을 생성하지만,
+                # 한글 파일명이나 특수문자가 있으면 다르게 생성될 수 있음
+                logger.info(f"LibreOffice 변환 완료 (returncode: {result.returncode})")
+                if result.stdout:
+                    logger.info(f"LibreOffice stdout: {result.stdout}")
+                if result.stderr:
+                    logger.info(f"LibreOffice stderr: {result.stderr}")
                 
-                # 파일 존재 여부 확인
+                # 출력 디렉토리에서 PDF 파일 찾기
+                if not os.path.exists(output_dir):
+                    raise FileNotFoundError(f"출력 디렉토리가 존재하지 않습니다: {output_dir}")
+                
+                # 변환 후 새로 생성된 파일 확인
+                after_files = set(os.listdir(output_dir))
+                new_files = after_files - before_files
+                logger.info(f"변환 후 새로 생성된 파일: {list(new_files)}")
+                
+                # 디렉토리에서 모든 PDF 파일 찾기
+                pdf_files = [f for f in os.listdir(output_dir) if f.endswith('.pdf')]
+                logger.info(f"출력 디렉토리에서 발견된 모든 PDF 파일: {pdf_files}")
+                
+                # 새로 생성된 PDF 파일 찾기 (우선순위)
+                new_pdf_files = [f for f in new_files if f.endswith('.pdf')]
+                if new_pdf_files:
+                    # 가장 최근에 생성된 파일 선택
+                    pdf_files_with_time = [
+                        (f, os.path.getmtime(os.path.join(output_dir, f)))
+                        for f in new_pdf_files
+                    ]
+                    pdf_files_with_time.sort(key=lambda x: x[1], reverse=True)
+                    latest_pdf = pdf_files_with_time[0][0]
+                    pdf_path = os.path.join(output_dir, latest_pdf)
+                    logger.info(f"새로 생성된 PDF 파일 발견: {pdf_path}")
+                else:
+                    # 예상 파일명으로 찾기
+                    expected_pdf_name = os.path.basename(temp_excel_path).replace('.xlsx', '.pdf')
+                    if expected_pdf_name in pdf_files:
+                        pdf_path = os.path.join(output_dir, expected_pdf_name)
+                        logger.info(f"예상 파일명으로 PDF 발견: {pdf_path}")
+                    else:
+                        # 예상 파일명이 없으면 가장 최근에 생성된 PDF 파일 찾기
+                        if pdf_files:
+                            # 파일 수정 시간으로 정렬하여 가장 최근 파일 선택
+                            pdf_files_with_time = [
+                                (f, os.path.getmtime(os.path.join(output_dir, f)))
+                                for f in pdf_files
+                            ]
+                            pdf_files_with_time.sort(key=lambda x: x[1], reverse=True)
+                            latest_pdf = pdf_files_with_time[0][0]
+                            pdf_path = os.path.join(output_dir, latest_pdf)
+                            logger.warning(f"예상 파일명을 찾지 못했습니다. 가장 최근 PDF 파일 사용: {pdf_path}")
+                        else:
+                            logger.error(f"출력 디렉토리에 PDF 파일이 없습니다: {output_dir}")
+                            logger.error(f"디렉토리 전체 내용: {os.listdir(output_dir)}")
+                            logger.error(f"변환 전 파일: {list(before_files)}")
+                            logger.error(f"변환 후 파일: {list(after_files)}")
+                            logger.error(f"새로 생성된 파일: {list(new_files)}")
+                            raise FileNotFoundError(f"PDF 파일이 생성되지 않았습니다. 출력 디렉토리: {output_dir}")
+                
+                # 파일 존재 여부 최종 확인
                 if not os.path.exists(pdf_path):
-                    logger.error(f"LibreOffice 변환 후 PDF 파일이 생성되지 않았습니다: {pdf_path}")
-                    logger.debug(f"출력 디렉토리 내용: {os.listdir(output_dir) if os.path.exists(output_dir) else '디렉토리 없음'}")
-                    raise FileNotFoundError(f"PDF 파일이 생성되지 않았습니다: {pdf_path}")
+                    logger.error(f"PDF 파일이 존재하지 않습니다: {pdf_path}")
+                    logger.error(f"출력 디렉토리 내용: {os.listdir(output_dir)}")
+                    raise FileNotFoundError(f"PDF 파일이 존재하지 않습니다: {pdf_path}")
                 
                 # 파일 이동
                 if pdf_path != output_path:
