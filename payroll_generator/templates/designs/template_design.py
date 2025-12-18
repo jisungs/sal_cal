@@ -540,7 +540,7 @@ class TemplateDesign(BaseDesign):
                     logger.info(f"출력 디렉토리 생성: {output_dir}")
                 
                 # LibreOffice 경로 찾기
-                libreoffice_cmd = 'libreoffice'
+                libreoffice_cmd = None
                 if os.name == 'posix':  # Mac/Linux
                     # 1. which 명령어로 PATH에서 찾기 (Nix 환경 포함)
                     try:
@@ -549,29 +549,31 @@ class TemplateDesign(BaseDesign):
                         if libreoffice_path:
                             libreoffice_cmd = libreoffice_path
                             logger.info(f"LibreOffice 경로 발견 (which): {libreoffice_cmd}")
+                        else:
+                            logger.warning("LibreOffice를 PATH에서 찾을 수 없습니다 (shutil.which)")
                     except Exception as e:
                         logger.debug(f"which 명령어로 LibreOffice 찾기 실패: {e}")
                     
                     # 2. which로 찾지 못한 경우 일반적인 경로들 확인
-                    if libreoffice_cmd == 'libreoffice':
+                    if not libreoffice_cmd:
                         possible_paths = [
                             '/Applications/LibreOffice.app/Contents/MacOS/soffice',
                             '/usr/bin/libreoffice',
                             '/usr/local/bin/libreoffice',
-                            '/nix/store/*/bin/libreoffice',  # Nix 환경
-                            'libreoffice'  # PATH에 있는 경우
                         ]
                         for path in possible_paths:
-                            if path == 'libreoffice':
+                            if os.path.exists(path):
                                 libreoffice_cmd = path
+                                logger.info(f"LibreOffice 경로 발견 (명시적 경로): {libreoffice_cmd}")
                                 break
-                            elif '*' in path:
-                                # Nix store 경로는 glob 패턴이므로 실제로는 which로 찾아야 함
-                                continue
-                            elif os.path.exists(path):
-                                libreoffice_cmd = path
-                                logger.info(f"LibreOffice 경로 발견: {libreoffice_cmd}")
-                                break
+                    
+                    # 3. 여전히 찾지 못한 경우 'libreoffice'로 시도 (PATH에 있을 수 있음)
+                    if not libreoffice_cmd:
+                        libreoffice_cmd = 'libreoffice'
+                        logger.info("LibreOffice 경로를 찾지 못했습니다. 'libreoffice' 명령어로 시도합니다.")
+                
+                if not libreoffice_cmd:
+                    raise FileNotFoundError("LibreOffice를 찾을 수 없습니다. PATH에 있는지 확인하세요.")
                 
                 # 한글 폰트 인식을 위한 환경 변수 설정
                 env = os.environ.copy()
@@ -678,24 +680,15 @@ class TemplateDesign(BaseDesign):
             except Exception as e:
                 logger.warning(f"COM 객체 변환 실패: {e}")
             
-            # 폴백: 기본 PDF 생성기로 폴백 (Railway 배포 환경 대응)
-            # Railway 등 배포 환경에서는 LibreOffice가 없을 수 있으므로 기본 PDF 생성기 사용
-            # 하지만 템플릿 디자인은 유지하기 위해 design_name을 전달
+            # 폴백: 기본 PDF 생성기로 폴백 (무한 루프 방지를 위해 design_name=None)
+            # LibreOffice가 없으므로 템플릿 디자인 PDF를 생성할 수 없음
+            # 대신 엑셀 파일은 템플릿 디자인으로 생성되었으므로 사용자에게 제공
             logger.warning(
                 f"엑셀→PDF 자동 변환에 실패했습니다. "
                 f"LibreOffice가 설치되어 있지 않거나 사용할 수 없습니다. "
                 f"기본 PDF 생성 방식으로 폴백합니다. (템플릿 엑셀 파일은 생성됨: {temp_excel_path})"
             )
             
-            # 템플릿 파일명에서 design_name 추출
-            # template_sample1.xlsx -> template_sample1
-            design_name_from_template = self.template_filename.replace('.xlsx', '')
-            logger.info(f"템플릿 디자인 유지를 위해 design_name={design_name_from_template} 사용")
-            
-            # 기본 PDF 생성기로 폴백하되, 템플릿 디자인 이름을 전달하여
-            # PDF 생성기가 다시 템플릿 디자인을 시도하도록 함
-            # 하지만 LibreOffice가 없으므로 결국 기본 디자인으로 생성됨
-            # 대신 엑셀 파일은 템플릿 디자인으로 생성되었으므로 사용자에게 제공
             try:
                 from ...pdf_generator import PDFGenerator
             except ImportError:
@@ -711,25 +704,33 @@ class TemplateDesign(BaseDesign):
                 logger.info(f"폴백 PDF 출력 디렉토리 생성: {output_dir}")
             
             pdf_gen = PDFGenerator()
-            logger.info(f"기본 PDF 생성 방식으로 폴백하여 PDF 생성 중... (design_name={design_name_from_template})")
+            logger.info(f"기본 PDF 생성 방식으로 폴백하여 PDF 생성 중... (design_name=None, 무한 루프 방지)")
             
-            # design_name을 전달하지만, LibreOffice가 없으므로 결국 기본 디자인으로 생성됨
-            # 이 경우 엑셀 파일은 템플릿 디자인으로 생성되었으므로 사용자에게 제공
-            result = pdf_gen.generate_payslip(
-                payroll_data, employee_data, output_path, period,
-                use_template=False, design_name=design_name_from_template
-            )
-            
-            # 파일 생성 확인
-            if not os.path.exists(output_path):
-                raise FileNotFoundError(f"폴백 PDF 생성 후 파일이 존재하지 않습니다: {output_path}")
-            logger.warning(
-                f"PDF는 기본 디자인으로 생성되었습니다. "
-                f"템플릿 디자인이 적용된 엑셀 파일은 {temp_excel_path}에 있습니다. "
-                f"LibreOffice를 설치하면 템플릿 디자인 PDF를 생성할 수 있습니다."
-            )
-            logger.info(f"기본 PDF 생성 완료: {output_path}")
-            return result
+            # design_name=None으로 설정하여 무한 루프 방지
+            # LibreOffice가 없으므로 템플릿 디자인을 다시 시도하지 않음
+            # 기본 디자인으로 PDF 생성
+            try:
+                result = pdf_gen.generate_payslip(
+                    payroll_data, employee_data, output_path, period,
+                    use_template=False, design_name=None  # 무한 루프 방지
+                )
+                
+                # 파일 생성 확인
+                if not os.path.exists(output_path):
+                    logger.error(f"폴백 PDF 생성 후 파일이 존재하지 않습니다: {output_path}")
+                    raise FileNotFoundError(f"폴백 PDF 생성 후 파일이 존재하지 않습니다: {output_path}")
+                
+                logger.warning(
+                    f"PDF는 기본 디자인으로 생성되었습니다. "
+                    f"템플릿 디자인이 적용된 엑셀 파일은 {temp_excel_path}에 있습니다. "
+                    f"LibreOffice를 설치하면 템플릿 디자인 PDF를 생성할 수 있습니다."
+                )
+                logger.info(f"기본 PDF 생성 완료: {output_path}")
+                return result
+            except Exception as e:
+                logger.error(f"폴백 PDF 생성 중 오류 발생: {e}", exc_info=True)
+                # 폴백도 실패하면 예외를 다시 발생시켜 상위에서 처리하도록 함
+                raise
             
         finally:
             # 임시 엑셀 파일은 디버깅을 위해 유지 (선택사항)
