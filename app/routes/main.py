@@ -311,6 +311,11 @@ def download_file(format, employee_name):
                 design_name=design_name
             )
             
+            # 파일 생성 확인
+            if not os.path.exists(output_path):
+                logger.error(f"PDF 파일이 생성되지 않았습니다: {output_path}")
+                return jsonify({'error': f'PDF 파일 생성 실패: {output_path}'}), 500
+            
             # Phase 4: 파일 생성 로그 저장
             try:
                 file_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0

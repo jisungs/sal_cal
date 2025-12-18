@@ -597,26 +597,50 @@ class TemplateDesign(BaseDesign):
                     libreoffice_cmd, '--headless', '--convert-to', 'pdf',
                     '--outdir', output_dir,
                     temp_excel_path
-                ], check=True, capture_output=True, timeout=30, env=env)
+                ], check=False, capture_output=True, timeout=30, env=env)
+                
+                # 변환 결과 확인
+                if result.returncode != 0:
+                    logger.warning(f"LibreOffice 변환 실패 (returncode: {result.returncode})")
+                    logger.debug(f"LibreOffice stdout: {result.stdout.decode() if result.stdout else 'N/A'}")
+                    logger.debug(f"LibreOffice stderr: {result.stderr.decode() if result.stderr else 'N/A'}")
+                    raise subprocess.CalledProcessError(result.returncode, libreoffice_cmd, result.stdout, result.stderr)
                 
                 # 출력 파일명 확인 및 이동
                 pdf_name = os.path.basename(temp_excel_path).replace('.xlsx', '.pdf')
                 pdf_path = os.path.join(output_dir, pdf_name)
-                if os.path.exists(pdf_path) and pdf_path != output_path:
+                
+                # 파일 존재 여부 확인
+                if not os.path.exists(pdf_path):
+                    logger.error(f"LibreOffice 변환 후 PDF 파일이 생성되지 않았습니다: {pdf_path}")
+                    logger.debug(f"출력 디렉토리 내용: {os.listdir(output_dir) if os.path.exists(output_dir) else '디렉토리 없음'}")
+                    raise FileNotFoundError(f"PDF 파일이 생성되지 않았습니다: {pdf_path}")
+                
+                # 파일 이동
+                if pdf_path != output_path:
                     if os.path.exists(output_path):
                         os.remove(output_path)
                     os.rename(pdf_path, output_path)
+                
+                # 최종 파일 존재 여부 확인
+                if not os.path.exists(output_path):
+                    raise FileNotFoundError(f"PDF 파일 이동 후 파일이 존재하지 않습니다: {output_path}")
+                
                 logger.info(f"템플릿 기반 PDF 생성 완료 (LibreOffice): {output_path}")
                 return output_path
             except FileNotFoundError:
-                logger.debug("LibreOffice를 찾을 수 없습니다.")
+                logger.warning("LibreOffice를 찾을 수 없습니다. 폴백 로직으로 전환합니다.")
             except subprocess.TimeoutExpired:
-                logger.warning("LibreOffice 변환 시간 초과")
+                logger.warning("LibreOffice 변환 시간 초과. 폴백 로직으로 전환합니다.")
             except subprocess.CalledProcessError as e:
-                logger.warning(f"LibreOffice 변환 실패: {e}")
+                logger.warning(f"LibreOffice 변환 실패 (returncode: {e.returncode}). 폴백 로직으로 전환합니다.")
+                logger.debug(f"LibreOffice stdout: {e.stdout.decode() if e.stdout else 'N/A'}")
                 logger.debug(f"LibreOffice stderr: {e.stderr.decode() if e.stderr else 'N/A'}")
+            except FileNotFoundError as e:
+                logger.error(f"PDF 파일 생성 실패: {e}. 폴백 로직으로 전환합니다.")
             except Exception as e:
-                logger.warning(f"LibreOffice 변환 중 오류: {e}")
+                logger.warning(f"LibreOffice 변환 중 오류: {e}. 폴백 로직으로 전환합니다.")
+                logger.exception("LibreOffice 변환 예외 상세:")
             
             # 옵션 2: Windows COM 객체 사용 (Windows 전용)
             try:
@@ -661,6 +685,12 @@ class TemplateDesign(BaseDesign):
                 except ImportError:
                     from pdf_generator import PDFGenerator
             
+            # 출력 디렉토리 생성 확인 (폴백 시에도 필요)
+            output_dir = os.path.dirname(output_path)
+            if output_dir and not os.path.exists(output_dir):
+                os.makedirs(output_dir, exist_ok=True)
+                logger.info(f"폴백 PDF 출력 디렉토리 생성: {output_dir}")
+            
             pdf_gen = PDFGenerator()
             logger.info(f"기본 PDF 생성 방식으로 폴백하여 PDF 생성 중... (design_name={design_name_from_template})")
             
@@ -670,6 +700,10 @@ class TemplateDesign(BaseDesign):
                 payroll_data, employee_data, output_path, period,
                 use_template=False, design_name=design_name_from_template
             )
+            
+            # 파일 생성 확인
+            if not os.path.exists(output_path):
+                raise FileNotFoundError(f"폴백 PDF 생성 후 파일이 존재하지 않습니다: {output_path}")
             logger.warning(
                 f"PDF는 기본 디자인으로 생성되었습니다. "
                 f"템플릿 디자인이 적용된 엑셀 파일은 {temp_excel_path}에 있습니다. "
