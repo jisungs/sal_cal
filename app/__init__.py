@@ -101,7 +101,23 @@ def create_app(config_name=None):
             tables = inspector.get_table_names()
             
             if 'users' not in tables:
-                app.logger.warning("⚠️ 'users' 테이블이 존재하지 않습니다. 마이그레이션을 실행하세요: flask db upgrade")
+                app.logger.warning("⚠️ 'users' 테이블이 존재하지 않습니다. 마이그레이션을 자동 실행합니다...")
+                try:
+                    # 자동 마이그레이션 실행
+                    from flask_migrate import upgrade
+                    upgrade()
+                    app.logger.info("✅ 데이터베이스 마이그레이션 완료")
+                    
+                    # 마이그레이션 후 테이블 다시 확인
+                    inspector = inspect(db.engine)
+                    tables = inspector.get_table_names()
+                    if 'users' in tables:
+                        app.logger.info("✅ 데이터베이스 테이블 확인 완료")
+                    else:
+                        app.logger.error("❌ 마이그레이션 후에도 'users' 테이블이 생성되지 않았습니다.")
+                except Exception as migrate_error:
+                    app.logger.error(f"❌ 마이그레이션 실행 실패: {str(migrate_error)}")
+                    app.logger.error("수동으로 마이그레이션을 실행하세요: flask db upgrade")
             else:
                 app.logger.info("✅ 데이터베이스 테이블 확인 완료")
     except Exception as e:
