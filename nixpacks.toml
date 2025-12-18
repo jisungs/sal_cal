@@ -4,7 +4,7 @@
 # Nixpacks는 Nix 패키지 매니저를 사용
 # 가상환경을 사용하므로 python3Packages.pip는 필요하지 않음 (venv 모듈은 Python 3.3+에 내장)
 [phases.setup]
-nixPkgs = ["libreoffice", "python3", "fontconfig"]
+nixPkgs = ["libreoffice", "python3", "fontconfig", "xorg.xvfb"]
 
 [phases.install]
 cmds = [

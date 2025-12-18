@@ -523,6 +523,9 @@ class TemplateDesign(BaseDesign):
         with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
             temp_excel_path = tmp.name
         
+        # Xvfb 프로세스 추적을 위한 변수
+        xvfb_process = None
+        
         try:
             # 2. 템플릿 기반 엑셀 생성
             logger.info(f"템플릿 엑셀 파일 생성 중: {temp_excel_path}")
@@ -635,10 +638,7 @@ class TemplateDesign(BaseDesign):
                 env['SAL_USE_VCLPLUGIN'] = 'gen'  # 일반 VCL 플러그인 사용
                 
                 # LibreOffice headless 모드에서 필요한 환경 변수 설정
-                # DISPLAY: headless 모드에서는 DISPLAY를 제거해야 함 (X11 서버가 없으므로)
-                # DISPLAY가 설정되어 있으면 제거 (X11 오류 방지)
-                if 'DISPLAY' in env:
-                    del env['DISPLAY']
+                # Xvfb를 사용하여 가상 디스플레이 생성
                 # HOME: 사용자 홈 디렉토리 (LibreOffice 설정 파일 저장용)
                 if 'HOME' not in env:
                     env['HOME'] = os.path.expanduser('~')
@@ -648,6 +648,36 @@ class TemplateDesign(BaseDesign):
                 import tempfile
                 libreoffice_userdir = tempfile.mkdtemp(prefix='libreoffice_user_')
                 logger.debug(f"LibreOffice 사용자 디렉토리: {libreoffice_userdir}")
+                
+                # Xvfb 경로 찾기 (가상 디스플레이 서버)
+                xvfb_cmd = None
+                xvfb_process = None
+                try:
+                    import shutil
+                    xvfb_path = shutil.which('xvfb-run')
+                    if xvfb_path:
+                        xvfb_cmd = xvfb_path
+                        logger.info(f"xvfb-run 경로 발견: {xvfb_cmd}")
+                    else:
+                        # xvfb-run이 없으면 직접 Xvfb 실행
+                        xvfb_bin = shutil.which('Xvfb')
+                        if xvfb_bin:
+                            logger.info(f"Xvfb 바이너리 발견: {xvfb_bin}")
+                            # Xvfb를 백그라운드로 시작
+                            import time
+                            xvfb_display = ':99'
+                            xvfb_process = subprocess.Popen(
+                                [xvfb_bin, xvfb_display, '-screen', '0', '1024x768x24', '-ac'],
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL
+                            )
+                            time.sleep(2)  # Xvfb 시작 대기
+                            env['DISPLAY'] = xvfb_display
+                            logger.info(f"Xvfb 시작됨 (DISPLAY={xvfb_display}, PID={xvfb_process.pid})")
+                        else:
+                            logger.warning("Xvfb를 찾을 수 없습니다. DISPLAY 없이 시도합니다.")
+                except Exception as e:
+                    logger.warning(f"Xvfb 설정 중 오류: {e}")
                 
                 # LibreOffice 명령어 실행 전 확인
                 logger.info(f"LibreOffice를 사용하여 PDF 변환 중...")
@@ -680,19 +710,32 @@ class TemplateDesign(BaseDesign):
                 # --norestore: 복원 세션 사용 안 함
                 # --nolockcheck: 파일 잠금 확인 안 함
                 # LibreOffice 변환 명령어 실행
-                # --headless: GUI 없이 실행
-                # --invisible: 보이지 않는 모드 (headless와 함께 사용)
-                # --nodefault: 기본 설정 파일 사용 안 함
-                # --norestore: 복원 세션 사용 안 함
-                # --nolockcheck: 파일 잠금 확인 안 함
-                # -env:UserInstallation: 사용자 설치 디렉토리 지정 (충돌 방지)
-                result = subprocess.run([
-                    libreoffice_cmd, '--headless', '--invisible', '--nodefault', '--norestore', '--nolockcheck',
+                # xvfb-run을 사용하여 가상 디스플레이에서 실행 (X11 오류 방지)
+                libreoffice_args = [
+                    '--headless', '--invisible', '--nodefault', '--norestore', '--nolockcheck',
                     f'-env:UserInstallation=file://{libreoffice_userdir}',
                     '--convert-to', 'pdf',
                     '--outdir', output_dir,
                     temp_excel_path
-                ], check=False, capture_output=True, timeout=60, env=env, text=True)
+                ]
+                
+                if xvfb_cmd:
+                    # xvfb-run을 사용하여 실행
+                    cmd = [xvfb_cmd, '-a', '-s', '-screen 0 1024x768x24'] + [libreoffice_cmd] + libreoffice_args
+                    logger.info(f"Xvfb-run을 사용하여 LibreOffice 실행")
+                else:
+                    # xvfb-run이 없으면 직접 실행 (Xvfb가 백그라운드에서 실행 중일 수 있음)
+                    cmd = [libreoffice_cmd] + libreoffice_args
+                    logger.info(f"LibreOffice 직접 실행 (DISPLAY={env.get('DISPLAY', 'N/A')})")
+                
+                result = subprocess.run(
+                    cmd,
+                    check=False,
+                    capture_output=True,
+                    timeout=60,
+                    env=env,
+                    text=True
+                )
                 
                 # 변환 후 출력 디렉토리 상태 확인
                 after_files = set(os.listdir(output_dir)) if os.path.exists(output_dir) else set()
@@ -884,6 +927,15 @@ class TemplateDesign(BaseDesign):
                 raise
             
         finally:
+            # Xvfb 프로세스 정리 (직접 시작한 경우)
+            try:
+                if xvfb_process is not None:
+                    xvfb_process.terminate()
+                    xvfb_process.wait(timeout=5)
+                    logger.debug("Xvfb 프로세스 종료됨")
+            except Exception as e:
+                logger.debug(f"Xvfb 프로세스 종료 중 오류 (무시): {e}")
+            
             # 임시 엑셀 파일은 디버깅을 위해 유지 (선택사항)
             # 필요시 삭제: 
             # if os.path.exists(temp_excel_path):
