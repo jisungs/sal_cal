@@ -142,6 +142,11 @@ class ExcelHandler:
             logger.warning("템플릿 파일을 찾을 수 없어 코드 기반 생성으로 전환합니다.")
             return self._write_payroll_code_based(payroll_data, output_path, employee_data, period)
         
+        # 출력 디렉토리 생성
+        output_dir = os.path.dirname(output_path)
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
+        
         # 템플릿 파일 로드
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active

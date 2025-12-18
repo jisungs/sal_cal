@@ -534,6 +534,11 @@ class TemplateDesign(BaseDesign):
                 import subprocess
                 output_dir = os.path.dirname(output_path)
                 
+                # 출력 디렉토리가 없으면 생성
+                if output_dir and not os.path.exists(output_dir):
+                    os.makedirs(output_dir, exist_ok=True)
+                    logger.info(f"출력 디렉토리 생성: {output_dir}")
+                
                 # LibreOffice 경로 찾기 (Mac의 경우 Applications 폴더 확인)
                 libreoffice_cmd = 'libreoffice'
                 if os.name == 'posix':  # Mac/Linux

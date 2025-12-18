@@ -273,6 +273,13 @@ def download_file(format, employee_name):
             pdf_generator = PDFGenerator()
             output_path = os.path.join(output_folder, 'pdf',
                                      f"{employee_name}_급여명세서.pdf")
+            
+            # 출력 디렉토리가 없으면 생성
+            pdf_dir = os.path.dirname(output_path)
+            if pdf_dir and not os.path.exists(pdf_dir):
+                os.makedirs(pdf_dir, exist_ok=True)
+                logger.info(f"PDF 출력 디렉토리 생성: {pdf_dir}")
+            
             # 디자인 선택: 'default'는 None으로 변환하여 기본 방식 사용
             design_name = session.get('design_name', None)
             logger.info(f"[다운로드-PDF] 세션에서 읽은 design_name: '{design_name}'")
@@ -378,6 +385,18 @@ def batch_download(format):
                     design_name = None
             
             logger.info(f"[일괄 다운로드] 최종 사용할 design_name: '{design_name}'")
+
+            # 출력 디렉토리 생성 확인
+            excel_dir = os.path.join(output_folder, 'excel')
+            pdf_dir = os.path.join(output_folder, 'pdf')
+            if format in ['excel', 'both']:
+                if not os.path.exists(excel_dir):
+                    os.makedirs(excel_dir, exist_ok=True)
+                    logger.info(f"엑셀 출력 디렉토리 생성: {excel_dir}")
+            if format in ['pdf', 'both']:
+                if not os.path.exists(pdf_dir):
+                    os.makedirs(pdf_dir, exist_ok=True)
+                    logger.info(f"PDF 출력 디렉토리 생성: {pdf_dir}")
 
             for result_item in results:
                 employee_name = result_item['employee_name']
