@@ -632,15 +632,22 @@ class TemplateDesign(BaseDesign):
                 
                 # LibreOffice가 폰트를 인식하도록 환경 변수 설정
                 # SAL_USE_VCLPLUGIN: LibreOffice의 VCL 플러그인 설정
-                # FONTCONFIG_FILE: fontconfig 설정 파일 경로 (선택사항)
                 env['SAL_USE_VCLPLUGIN'] = 'gen'  # 일반 VCL 플러그인 사용
                 
                 # LibreOffice headless 모드에서 필요한 환경 변수 설정
-                # DISPLAY: X11 display (headless 모드에서는 필요 없지만 설정)
-                env['DISPLAY'] = ':99'  # 가상 display 설정
+                # DISPLAY: headless 모드에서는 DISPLAY를 제거해야 함 (X11 서버가 없으므로)
+                # DISPLAY가 설정되어 있으면 제거 (X11 오류 방지)
+                if 'DISPLAY' in env:
+                    del env['DISPLAY']
                 # HOME: 사용자 홈 디렉토리 (LibreOffice 설정 파일 저장용)
                 if 'HOME' not in env:
                     env['HOME'] = os.path.expanduser('~')
+                
+                # LibreOffice 사용자 프로필 디렉토리 설정 (임시 디렉토리 사용)
+                # 이렇게 하면 여러 프로세스가 동시에 실행될 때 충돌 방지
+                import tempfile
+                libreoffice_userdir = tempfile.mkdtemp(prefix='libreoffice_user_')
+                logger.debug(f"LibreOffice 사용자 디렉토리: {libreoffice_userdir}")
                 
                 # LibreOffice 명령어 실행 전 확인
                 logger.info(f"LibreOffice를 사용하여 PDF 변환 중...")
@@ -672,8 +679,16 @@ class TemplateDesign(BaseDesign):
                 # --nodefault: 기본 설정 파일 사용 안 함
                 # --norestore: 복원 세션 사용 안 함
                 # --nolockcheck: 파일 잠금 확인 안 함
+                # LibreOffice 변환 명령어 실행
+                # --headless: GUI 없이 실행
+                # --invisible: 보이지 않는 모드 (headless와 함께 사용)
+                # --nodefault: 기본 설정 파일 사용 안 함
+                # --norestore: 복원 세션 사용 안 함
+                # --nolockcheck: 파일 잠금 확인 안 함
+                # -env:UserInstallation: 사용자 설치 디렉토리 지정 (충돌 방지)
                 result = subprocess.run([
-                    libreoffice_cmd, '--headless', '--nodefault', '--norestore', '--nolockcheck',
+                    libreoffice_cmd, '--headless', '--invisible', '--nodefault', '--norestore', '--nolockcheck',
+                    f'-env:UserInstallation=file://{libreoffice_userdir}',
                     '--convert-to', 'pdf',
                     '--outdir', output_dir,
                     temp_excel_path
