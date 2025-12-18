@@ -539,20 +539,39 @@ class TemplateDesign(BaseDesign):
                     os.makedirs(output_dir, exist_ok=True)
                     logger.info(f"출력 디렉토리 생성: {output_dir}")
                 
-                # LibreOffice 경로 찾기 (Mac의 경우 Applications 폴더 확인)
+                # LibreOffice 경로 찾기
                 libreoffice_cmd = 'libreoffice'
                 if os.name == 'posix':  # Mac/Linux
-                    # Mac의 경우 일반적인 경로들 확인
-                    possible_paths = [
-                        '/Applications/LibreOffice.app/Contents/MacOS/soffice',
-                        '/usr/bin/libreoffice',
-                        '/usr/local/bin/libreoffice',
-                        'libreoffice'
-                    ]
-                    for path in possible_paths:
-                        if os.path.exists(path) or path == 'libreoffice':
-                            libreoffice_cmd = path
-                            break
+                    # 1. which 명령어로 PATH에서 찾기 (Nix 환경 포함)
+                    try:
+                        import shutil
+                        libreoffice_path = shutil.which('libreoffice')
+                        if libreoffice_path:
+                            libreoffice_cmd = libreoffice_path
+                            logger.info(f"LibreOffice 경로 발견 (which): {libreoffice_cmd}")
+                    except Exception as e:
+                        logger.debug(f"which 명령어로 LibreOffice 찾기 실패: {e}")
+                    
+                    # 2. which로 찾지 못한 경우 일반적인 경로들 확인
+                    if libreoffice_cmd == 'libreoffice':
+                        possible_paths = [
+                            '/Applications/LibreOffice.app/Contents/MacOS/soffice',
+                            '/usr/bin/libreoffice',
+                            '/usr/local/bin/libreoffice',
+                            '/nix/store/*/bin/libreoffice',  # Nix 환경
+                            'libreoffice'  # PATH에 있는 경우
+                        ]
+                        for path in possible_paths:
+                            if path == 'libreoffice':
+                                libreoffice_cmd = path
+                                break
+                            elif '*' in path:
+                                # Nix store 경로는 glob 패턴이므로 실제로는 which로 찾아야 함
+                                continue
+                            elif os.path.exists(path):
+                                libreoffice_cmd = path
+                                logger.info(f"LibreOffice 경로 발견: {libreoffice_cmd}")
+                                break
                 
                 # 한글 폰트 인식을 위한 환경 변수 설정
                 env = os.environ.copy()

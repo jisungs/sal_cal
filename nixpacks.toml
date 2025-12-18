@@ -4,16 +4,23 @@
 # Nixpacks는 Nix 패키지 매니저를 사용
 # 가상환경을 사용하므로 python3Packages.pip는 필요하지 않음 (venv 모듈은 Python 3.3+에 내장)
 [phases.setup]
-nixPkgs = ["libreoffice", "python3"]
+nixPkgs = ["libreoffice", "python3", "fontconfig"]
 
 [phases.install]
 cmds = [
-  "apt-get update && apt-get install -y libreoffice libreoffice-writer libreoffice-calc libreoffice-impress fonts-nanum fonts-nanum-coding fontconfig || true",
+  # LibreOffice 설치 확인 (Nix 패키지로 설치됨)
+  "which libreoffice || echo 'LibreOffice 경로 확인 중...'",
+  "libreoffice --version || echo 'LibreOffice 버전 확인 실패'",
+  # 한글 폰트 설치 (apt-get은 Nix 환경에서 작동하지 않을 수 있으므로 프로젝트 폰트 사용)
   "mkdir -p /usr/share/fonts/truetype/nanum ~/.fonts /usr/share/fonts/opentype",
   "cp payroll_generator/assets/NanumGothic.ttf /usr/share/fonts/truetype/nanum/ 2>/dev/null || cp 'payroll_generator/assets/나눔 글꼴/나눔고딕/NanumFontSetup_TTF_GOTHIC/NanumGothic.ttf' /usr/share/fonts/truetype/nanum/ 2>/dev/null || true",
   "cp payroll_generator/assets/NanumGothic.ttf ~/.fonts/ 2>/dev/null || cp 'payroll_generator/assets/나눔 글꼴/나눔고딕/NanumFontSetup_TTF_GOTHIC/NanumGothic.ttf' ~/.fonts/ 2>/dev/null || true",
-  "fc-cache -fv --force",
-  "fc-list | grep -i nanum || echo '폰트 확인 중...'"
+  # 폰트 캐시 업데이트
+  "fc-cache -fv --force || echo '폰트 캐시 업데이트 실패 (무시)'",
+  "fc-list | grep -i nanum || echo '나눔 폰트 확인 중...'",
+  # LibreOffice 설치 확인 로그
+  "echo '=== LibreOffice 설치 확인 ==='",
+  "which libreoffice && libreoffice --version || echo 'LibreOffice를 찾을 수 없습니다'"
 ]
 
 # Python 패키지 설치는 [phases.build]에서 명시적으로 처리
