@@ -541,18 +541,22 @@ class TemplateDesign(BaseDesign):
                 
                 # LibreOffice 경로 찾기
                 libreoffice_cmd = None
+                import shutil
+                
                 if os.name == 'posix':  # Mac/Linux
                     # 1. which 명령어로 PATH에서 찾기 (Nix 환경 포함)
                     try:
-                        import shutil
                         libreoffice_path = shutil.which('libreoffice')
                         if libreoffice_path:
                             libreoffice_cmd = libreoffice_path
-                            logger.info(f"LibreOffice 경로 발견 (which): {libreoffice_cmd}")
+                            logger.info(f"LibreOffice 경로 발견 (shutil.which): {libreoffice_cmd}")
                         else:
                             logger.warning("LibreOffice를 PATH에서 찾을 수 없습니다 (shutil.which)")
+                            # PATH 확인
+                            path_env = os.environ.get('PATH', '')
+                            logger.info(f"현재 PATH: {path_env[:200]}...")  # 처음 200자만 표시
                     except Exception as e:
-                        logger.debug(f"which 명령어로 LibreOffice 찾기 실패: {e}")
+                        logger.warning(f"shutil.which로 LibreOffice 찾기 실패: {e}")
                     
                     # 2. which로 찾지 못한 경우 일반적인 경로들 확인
                     if not libreoffice_cmd:
@@ -567,13 +571,31 @@ class TemplateDesign(BaseDesign):
                                 logger.info(f"LibreOffice 경로 발견 (명시적 경로): {libreoffice_cmd}")
                                 break
                     
-                    # 3. 여전히 찾지 못한 경우 'libreoffice'로 시도 (PATH에 있을 수 있음)
+                    # 3. Nix store 경로 확인 (Railway Nix 환경)
+                    if not libreoffice_cmd:
+                        try:
+                            # Nix store에서 libreoffice 찾기
+                            import glob
+                            nix_paths = glob.glob('/nix/store/*/bin/libreoffice')
+                            if nix_paths:
+                                libreoffice_cmd = nix_paths[0]
+                                logger.info(f"LibreOffice 경로 발견 (Nix store): {libreoffice_cmd}")
+                        except Exception as e:
+                            logger.debug(f"Nix store 경로 확인 실패: {e}")
+                    
+                    # 4. 여전히 찾지 못한 경우 'libreoffice'로 시도 (PATH에 있을 수 있음)
                     if not libreoffice_cmd:
                         libreoffice_cmd = 'libreoffice'
-                        logger.info("LibreOffice 경로를 찾지 못했습니다. 'libreoffice' 명령어로 시도합니다.")
+                        logger.warning("LibreOffice 경로를 찾지 못했습니다. 'libreoffice' 명령어로 시도합니다.")
+                        logger.warning("이 경우 PATH에 LibreOffice가 포함되어 있어야 합니다.")
                 
                 if not libreoffice_cmd:
-                    raise FileNotFoundError("LibreOffice를 찾을 수 없습니다. PATH에 있는지 확인하세요.")
+                    error_msg = "LibreOffice를 찾을 수 없습니다. PATH에 있는지 확인하세요."
+                    logger.error(error_msg)
+                    logger.error("LibreOffice 설치 확인:")
+                    logger.error(f"  - PATH: {os.environ.get('PATH', 'N/A')[:500]}")
+                    logger.error(f"  - shutil.which('libreoffice'): {shutil.which('libreoffice')}")
+                    raise FileNotFoundError(error_msg)
                 
                 # 한글 폰트 인식을 위한 환경 변수 설정
                 env = os.environ.copy()
@@ -613,18 +635,43 @@ class TemplateDesign(BaseDesign):
                 # FONTCONFIG_FILE: fontconfig 설정 파일 경로 (선택사항)
                 env['SAL_USE_VCLPLUGIN'] = 'gen'  # 일반 VCL 플러그인 사용
                 
-                logger.info(f"LibreOffice를 사용하여 PDF 변환 중... (명령어: {libreoffice_cmd})")
+                # LibreOffice 명령어 실행 전 확인
+                logger.info(f"LibreOffice를 사용하여 PDF 변환 중...")
+                logger.info(f"  - 명령어: {libreoffice_cmd}")
+                logger.info(f"  - 입력 파일: {temp_excel_path}")
+                logger.info(f"  - 출력 디렉토리: {output_dir}")
+                logger.info(f"  - 최종 출력 경로: {output_path}")
+                
+                # LibreOffice 버전 확인 (디버깅용)
+                try:
+                    version_result = subprocess.run(
+                        [libreoffice_cmd, '--version'],
+                        capture_output=True,
+                        timeout=5,
+                        text=True
+                    )
+                    if version_result.returncode == 0:
+                        logger.info(f"LibreOffice 버전 확인: {version_result.stdout.strip()}")
+                    else:
+                        logger.warning(f"LibreOffice 버전 확인 실패: {version_result.stderr}")
+                except Exception as e:
+                    logger.warning(f"LibreOffice 버전 확인 중 오류: {e}")
+                
                 result = subprocess.run([
                     libreoffice_cmd, '--headless', '--convert-to', 'pdf',
                     '--outdir', output_dir,
                     temp_excel_path
-                ], check=False, capture_output=True, timeout=30, env=env)
+                ], check=False, capture_output=True, timeout=30, env=env, text=True)
                 
                 # 변환 결과 확인
                 if result.returncode != 0:
-                    logger.warning(f"LibreOffice 변환 실패 (returncode: {result.returncode})")
-                    logger.debug(f"LibreOffice stdout: {result.stdout.decode() if result.stdout else 'N/A'}")
-                    logger.debug(f"LibreOffice stderr: {result.stderr.decode() if result.stderr else 'N/A'}")
+                    logger.error(f"LibreOffice 변환 실패 (returncode: {result.returncode})")
+                    logger.error(f"LibreOffice stdout: {result.stdout if result.stdout else 'N/A'}")
+                    logger.error(f"LibreOffice stderr: {result.stderr if result.stderr else 'N/A'}")
+                    logger.error(f"입력 파일 존재 여부: {os.path.exists(temp_excel_path)}")
+                    logger.error(f"출력 디렉토리 존재 여부: {os.path.exists(output_dir)}")
+                    if os.path.exists(output_dir):
+                        logger.error(f"출력 디렉토리 내용: {os.listdir(output_dir)}")
                     raise subprocess.CalledProcessError(result.returncode, libreoffice_cmd, result.stdout, result.stderr)
                 
                 # 출력 파일명 확인 및 이동
@@ -649,18 +696,31 @@ class TemplateDesign(BaseDesign):
                 
                 logger.info(f"템플릿 기반 PDF 생성 완료 (LibreOffice): {output_path}")
                 return output_path
-            except FileNotFoundError:
-                logger.warning("LibreOffice를 찾을 수 없습니다. 폴백 로직으로 전환합니다.")
+            except FileNotFoundError as e:
+                logger.error(f"LibreOffice를 찾을 수 없습니다: {e}")
+                logger.error("폴백 로직으로 전환합니다. 템플릿 디자인 PDF를 생성할 수 없습니다.")
+                logger.error("LibreOffice 설치 확인:")
+                logger.error(f"  - PATH 확인: {os.environ.get('PATH', 'N/A')}")
+                try:
+                    import shutil
+                    libreoffice_check = shutil.which('libreoffice')
+                    logger.error(f"  - shutil.which('libreoffice'): {libreoffice_check}")
+                except Exception:
+                    logger.error(f"  - shutil.which('libreoffice'): 확인 실패")
             except subprocess.TimeoutExpired:
-                logger.warning("LibreOffice 변환 시간 초과. 폴백 로직으로 전환합니다.")
+                logger.error("LibreOffice 변환 시간 초과 (30초). 폴백 로직으로 전환합니다.")
             except subprocess.CalledProcessError as e:
-                logger.warning(f"LibreOffice 변환 실패 (returncode: {e.returncode}). 폴백 로직으로 전환합니다.")
-                logger.debug(f"LibreOffice stdout: {e.stdout.decode() if e.stdout else 'N/A'}")
-                logger.debug(f"LibreOffice stderr: {e.stderr.decode() if e.stderr else 'N/A'}")
+                logger.error(f"LibreOffice 변환 실패 (returncode: {e.returncode}). 폴백 로직으로 전환합니다.")
+                logger.error(f"LibreOffice stdout: {e.stdout if isinstance(e.stdout, str) else (e.stdout.decode() if e.stdout else 'N/A')}")
+                logger.error(f"LibreOffice stderr: {e.stderr if isinstance(e.stderr, str) else (e.stderr.decode() if e.stderr else 'N/A')}")
+                logger.error(f"명령어: {e.cmd if hasattr(e, 'cmd') else 'N/A'}")
             except FileNotFoundError as e:
                 logger.error(f"PDF 파일 생성 실패: {e}. 폴백 로직으로 전환합니다.")
+                logger.error(f"입력 파일: {temp_excel_path}")
+                logger.error(f"출력 경로: {output_path}")
+                logger.error(f"출력 디렉토리: {output_dir}")
             except Exception as e:
-                logger.warning(f"LibreOffice 변환 중 오류: {e}. 폴백 로직으로 전환합니다.")
+                logger.error(f"LibreOffice 변환 중 예상치 못한 오류: {e}. 폴백 로직으로 전환합니다.")
                 logger.exception("LibreOffice 변환 예외 상세:")
             
             # 옵션 2: Windows COM 객체 사용 (Windows 전용)
